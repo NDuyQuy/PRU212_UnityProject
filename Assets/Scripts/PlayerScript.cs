@@ -13,19 +13,22 @@ using UnityEngine;
 
 public class PlayerScript : BaseCharacterScript
 {
-    [SerializeField]private float walkSpeed = 5f;
-    [SerializeField]private float jumpForce = 750f;
-    [SerializeField]private float dashingPower = 3f;
+    [SerializeField] private float walkSpeed = 5f;
+    [SerializeField] private float dashingPower = 3f;
 
     private Animator animator;
 
     private float xAxis, yAxis;
-    private bool isJumpPressed;
-
-    public float castDistance;
-
-    private bool grounded;
     private string currentAnimaton;
+
+    #region jump_related_property
+    private bool isJumpPressed;
+    public float castDistance;
+    private bool grounded;
+    private bool canDoubleJump = true;
+    [SerializeField] private float jumpForce = 750f;
+    [SerializeField] private float doubleJumpForce = 600f;
+    #endregion
     private bool isAttackPressed;
     private bool isAttacking;
     private bool isFacingRight = true;  // For determining which way the player is currently facing.
@@ -55,11 +58,12 @@ public class PlayerScript : BaseCharacterScript
     private float wallJumpingTime = 0.2f;
     private float wallJumpingCounter;
     private float wallJumpingDuration = 0.4f;
-    [SerializeField]private Vector2 wallJumpingPower = new Vector2(3f,7f);
+    [SerializeField] private Vector2 wallJumpingPower = new Vector2(3f, 7f);
     #endregion
 
-    [SerializeField]private float attackDelay = 0.5f;
+    [SerializeField] private float attackDelay = 0.5f;
 
+    #region PLAYER_ANIMATION
     //Animation States
     const string PLAYER_IDLE = "Player_idle";
     const string PLAYER_WALK = "Player_walk";
@@ -72,6 +76,7 @@ public class PlayerScript : BaseCharacterScript
     const string PLAYER_GETUP_AFTER_SLIDE = "Player_slgup";
     const string PLAYER_WALL_SLIDING = "Player_wallslide";
     const string PLAYER_WALL_JUMP = "Player_walljump";
+    #endregion
     // Start is called before the first frame update
     protected override void Start()
     {
@@ -83,9 +88,11 @@ public class PlayerScript : BaseCharacterScript
     // Update is called once per frame
     void Update()
     {
-        if(isWallJumping) return;
-        if(isSliding) return;
-        CheckGrounded();
+        if (isWallJumping) return;
+        if (isSliding) return;
+        IsGrounded();
+        canDoubleJump = !(grounded && Input.GetButton("Jump"));
+
         xAxis = Input.GetAxisRaw("Horizontal");
 
         if (Input.GetKeyDown(KeyCode.Space)) isJumpPressed = true;
@@ -95,37 +102,34 @@ public class PlayerScript : BaseCharacterScript
         if (Input.GetKeyDown(KeyCode.S)) isCrouching = true;
         else if (Input.GetKeyUp(KeyCode.S)) isCrouching = false;
 
-        if(Input.GetKeyDown(KeyCode.L) && canDash) 
+        if (Input.GetKeyDown(KeyCode.L) && canDash)
         {
             StartCoroutine(Dash());
         }
-        WallSlide();    
+        WallSlide();
         WallJumping();
     }
 
     void FixedUpdate()
     {
-        if(isSliding) return;
-        if(isWallJumping) return;
-        if(isWallSliding)
+        if (isSliding) return;
+        if (isWallJumping) return;
+        if (isWallSliding)
         {
             ChangeAnimationState(PLAYER_WALL_SLIDING);
         }
+
         Vector2 vel = new Vector2(0, rb2d.velocity.y);
-        
-        if (xAxis < 0)
+
+        if (xAxis != 0)
         {
-            vel.x = (isCrouching) ? (-walkSpeed * crouchSlowdown): - walkSpeed ;
-        }
-        else if (xAxis > 0)
-        {
-            vel.x = (isCrouching) ? walkSpeed * crouchSlowdown:walkSpeed;
+            vel.x = (isCrouching) ? (xAxis * walkSpeed * crouchSlowdown) : (xAxis * walkSpeed);
         }
         else
         {
             vel.x = 0;
         }
-        
+
         if (xAxis > 0 && !isFacingRight) Flip();
         if (xAxis < 0 && isFacingRight) Flip();
 
@@ -133,10 +137,10 @@ public class PlayerScript : BaseCharacterScript
         {
             if (xAxis != 0)
             {
-                if(isCrouching) ChangeAnimationState(PLAYER_CROUCHING);
-                else 
+                if (isCrouching) ChangeAnimationState(PLAYER_CROUCHING);
+                else
                 {
-                    if(Mathf.Abs(walkSpeed)>9) ChangeAnimationState(PLAYER_RUN);
+                    if (Mathf.Abs(walkSpeed) > 9) ChangeAnimationState(PLAYER_RUN);
                     else ChangeAnimationState(PLAYER_WALK);
                 }
             }
@@ -146,22 +150,16 @@ public class PlayerScript : BaseCharacterScript
             }
         }
 
+        //call this function if perform jumping
+        Jump();
 
 
-        //check if trying jump
-        if (isJumpPressed && grounded)
-        {
-            rb2d.AddForce(new Vector2(0, jumpForce));
-            isJumpPressed = false;
-            ChangeAnimationState(PLAYER_JUMP);
-        }
-
-        if(slidePressed && grounded)
+        if (slidePressed && grounded)
         {
             slidePressed = false;
             ChangeAnimationState(PLAYER_SLIDE);
             isSliding = true;
-            Invoke("SlideComplete",0.3f);
+            Invoke("SlideComplete", 0.3f);
         }
 
         //asign new velocity to the rigid body
@@ -188,27 +186,51 @@ public class PlayerScript : BaseCharacterScript
 
             }
         }
-        
+
     }
 
+    #region jump_related_method
+    private void Jump()
+    {
+        if (isJumpPressed && (grounded || canDoubleJump))
+        {
+            //reset vertical velocity to zero to make the double jump feel better
+            rb2d.velocity = new Vector2(rb2d.velocity.x, 0);
+            rb2d.AddForce(new Vector2(0, grounded ? jumpForce : doubleJumpForce));
+            isJumpPressed = false;
+            
+            //disable double jump ability
+            canDoubleJump = (!grounded && canDoubleJump);
+
+            //when jumping the canDoubleJump is gonna be true 
+            //the wall jump just has roll up and fall animation so we can reuse it
+            ChangeAnimationState(grounded? PLAYER_JUMP : PLAYER_WALL_JUMP );
+        }
+    }
+    public bool IsGrounded()
+    {
+        grounded = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, castDistance, groundLayer);
+        return grounded;
+    }
+    #endregion
     #region  wall_jumping_related_method
     private bool IsOnWall()
     {
-        var hit = Physics2D.OverlapCircle(wallCheck.position,wallDistance, wallLayer);
+        var hit = Physics2D.OverlapCircle(wallCheck.position, wallDistance, wallLayer);
         return (hit && !grounded);
     }
     private void WallSlide()
     {
-        if(IsOnWall() && xAxis != 0f) 
+        if (IsOnWall() && xAxis != 0f)
         {
             isWallSliding = true;
-            rb2d.velocity = new Vector2(rb2d.velocity.x,Mathf.Clamp(rb2d.velocity.y,-wallSlidingSpeed,float.MaxValue));
+            rb2d.velocity = new Vector2(rb2d.velocity.x, Mathf.Clamp(rb2d.velocity.y, -wallSlidingSpeed, float.MaxValue));
         }
         else isWallSliding = false;
     }
     private void WallJumping()
     {
-        if(isWallSliding)
+        if (isWallSliding)
         {
             isWallJumping = false;
             WallJumpingDirection = -transform.localScale.x;
@@ -221,15 +243,16 @@ public class PlayerScript : BaseCharacterScript
             wallJumpingCounter -= Time.deltaTime;//allow wall jump for a brief moment
         }
 
-        if(Input.GetButtonDown("Jump")&&wallJumpingCounter>0f)
+        if (isJumpPressed && wallJumpingCounter > 0f)
         {
+            isJumpPressed = false;
             isWallJumping = true;
-            rb2d.velocity = new Vector2(WallJumpingDirection*wallJumpingPower.x,wallJumpingPower.y);
+            rb2d.velocity = new Vector2(WallJumpingDirection * wallJumpingPower.x, wallJumpingPower.y);
             wallJumpingCounter = 0;
             Flip();
             ChangeAnimationState(PLAYER_WALL_JUMP);
 
-            Invoke(nameof(StopWallJumping),wallJumpingDuration);
+            Invoke(nameof(StopWallJumping), wallJumpingDuration);
         }
     }
 
@@ -257,15 +280,6 @@ public class PlayerScript : BaseCharacterScript
         currentAnimaton = newAnimation;
     }
 
-    public bool CheckGrounded()
-    {
-        var hit = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, castDistance, groundLayer);
-
-        if (hit) grounded = true;
-        else grounded = false;
-
-        return grounded;
-    }
 
     private void Flip()
     {
@@ -284,14 +298,14 @@ public class PlayerScript : BaseCharacterScript
         isSliding = true;
         float originalGravity = rb2d.gravityScale;
         rb2d.gravityScale = 0f;
-        rb2d.velocity = new Vector2(transform.localScale.x*dashingPower,0f);
-        if(grounded)
+        rb2d.velocity = new Vector2(transform.localScale.x * dashingPower, 0f);
+        if (grounded)
             ChangeAnimationState(PLAYER_SLIDE);
         else ChangeAnimationState("");
 
         yield return new WaitForSeconds(dashingTime);
 
-        if(grounded)
+        if (grounded)
             ChangeAnimationState(PLAYER_GETUP_AFTER_SLIDE);
         yield return new WaitForSeconds(0.2f);
         rb2d.gravityScale = originalGravity;
