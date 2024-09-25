@@ -16,7 +16,7 @@ public class PlayerScript : MonoBehaviour
     [SerializeField]
     private float walkSpeed = 5f;
     [SerializeField]
-    private float jumpForce = 850f;
+    private float jumpForce = 750f;
     private Animator animator;
 
     private float xAxis, yAxis;
@@ -30,7 +30,8 @@ public class PlayerScript : MonoBehaviour
     private bool isAttackPressed;
     private bool isAttacking;
     private bool isFacingRight = true;  // For determining which way the player is currently facing.
-
+    private bool slidePressed;
+    private bool isSliding;
     private bool isCrouching;
     [SerializeField] private float crouchSlowdown = 0.4f;
 
@@ -38,7 +39,7 @@ public class PlayerScript : MonoBehaviour
     public LayerMask groundLayer;
 
     [SerializeField]
-    private float attackDelay = 0.3f;
+    private float attackDelay = 0.5f;
 
     //Animation States
     const string PLAYER_IDLE = "Player_idle";
@@ -46,8 +47,10 @@ public class PlayerScript : MonoBehaviour
     const string PLAYER_JUMP = "Player_jump";
     const string PLAYER_ATTACK = "Player_attack";
     const string PLAYER_AIR_ATTACK = "Player_air_attack";
-    const string PLAYER_CROUCHING = "Player_crouching";
-
+    const string PLAYER_CROUCHING = "Player_crouch";
+    const string PLAYER_RUN = "Player_run";
+    const string PLAYER_SLIDE = "Player_slide";
+    const string PLAYER_GETUP_AFTER_SLIDE = "Player_slgup";
     // Start is called before the first frame update
     void Start()
     {
@@ -67,16 +70,18 @@ public class PlayerScript : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.S)) isCrouching = true;
         else if (Input.GetKeyUp(KeyCode.S)) isCrouching = false;
+
+        if(Input.GetKeyDown(KeyCode.L)) slidePressed = true;
     }
 
     void FixedUpdate()
     {
 
         Vector2 vel = new Vector2(0, rb2d.velocity.y);
-
+        
         if (xAxis < 0)
         {
-            vel.x = (isCrouching) ? (-walkSpeed * crouchSlowdown): -walkSpeed ;
+            vel.x = (isCrouching) ? (-walkSpeed * crouchSlowdown): - walkSpeed ;
         }
         else if (xAxis > 0)
         {
@@ -86,15 +91,20 @@ public class PlayerScript : MonoBehaviour
         {
             vel.x = 0;
         }
-
+        
         if (xAxis > 0 && !isFacingRight) Flip();
         if (xAxis < 0 && isFacingRight) Flip();
 
-        if (grounded && !isAttacking)
+        if (grounded && !isAttacking && !isSliding)
         {
             if (xAxis != 0)
             {
-                ChangeAnimationState(PLAYER_WALK);
+                if(isCrouching) ChangeAnimationState(PLAYER_CROUCHING);
+                else 
+                {
+                    if(Mathf.Abs(walkSpeed)>9) ChangeAnimationState(PLAYER_RUN);
+                    else ChangeAnimationState(PLAYER_WALK);
+                }
             }
             else
             {
@@ -110,6 +120,14 @@ public class PlayerScript : MonoBehaviour
             rb2d.AddForce(new Vector2(0, jumpForce));
             isJumpPressed = false;
             ChangeAnimationState(PLAYER_JUMP);
+        }
+
+        if(slidePressed && grounded)
+        {
+            slidePressed = false;
+            ChangeAnimationState(PLAYER_SLIDE);
+            isSliding = true;
+            Invoke("SlideComplete",0.3f);
         }
 
         //asign new velocity to the rigid body
@@ -136,11 +154,13 @@ public class PlayerScript : MonoBehaviour
 
             }
         }
+        
+    }
 
-        if (isCrouching && xAxis != 0)
-        {
-            ChangeAnimationState(PLAYER_WALK);
-        }
+    void SlideComplete()
+    {
+        isSliding = false;
+        ChangeAnimationState(PLAYER_GETUP_AFTER_SLIDE);
     }
 
     private void OnDrawGizmos()

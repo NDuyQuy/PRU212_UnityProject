@@ -486,14 +486,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   walkSpeed: 5
-  jumpForce: 850
+  jumpForce: 750
   castDistance: 1.14
   crouchSlowdown: 0.4
   boxSize: {x: 1.19, y: 0.5}
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
-  attackDelay: 0.3
+  attackDelay: 0.5
 --- !u!1 &1896845774
 GameObject:
   m_ObjectHideFlags: 0
