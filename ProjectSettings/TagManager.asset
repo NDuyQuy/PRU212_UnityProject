@@ -13,6 +13,7 @@ TagManager:
   - Ground
   - Water
   - UI
+  - enemy
   - Player
   - Wall
   - 
