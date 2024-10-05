@@ -7,12 +7,11 @@ public class BaseCharacterScript : MonoBehaviour
     public sbyte maxHealth = 100;
     public sbyte currentHealth;
 
-    private bool isInvincible = false;
-    public float invincibilityDuration = 1f;
+    private bool isInvincible;
+    public float invincibilityDuration;
 
     protected Rigidbody2D rb2d;
     protected Vector2 boxSize = new Vector2(1.8f,0.2f);
-
     // Start is called before the first frame update
     protected virtual void Start()
     {
@@ -42,14 +41,9 @@ public class BaseCharacterScript : MonoBehaviour
         //implement later for detecting being hit
     }
 
-    public virtual void Attack()
+    public virtual void KnockBack(Vector2 knockBackDirection, float knockbackForce)
     {
-        //implement later for detecting hit
-    }
-
-    public virtual void KnockBack()
-    {
-
+        rb2d.AddForce(knockBackDirection * knockbackForce, ForceMode2D.Impulse);
     }
 
     private IEnumerator InvincibilityCoroutine()

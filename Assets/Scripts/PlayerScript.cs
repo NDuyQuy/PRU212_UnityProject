@@ -2,15 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-//public enum
-//{
-//    PLAYER_IDLE = "Player_idle";
-//    PLAYER_RUN = "Player_run";
-//    PLAYER_JUMP = "Player_jump";
-//    PLAY_ATTACK = "Player_attack";
-//    PLAYER_AIR_ATTACK = "Player_air_attack";
-//}PLAYER_ANIMATIONS
-
 public class PlayerScript : BaseCharacterScript
 {
     [SerializeField] private float walkSpeed = 5f;
@@ -20,30 +11,45 @@ public class PlayerScript : BaseCharacterScript
 
     private float xAxis, yAxis;
     private string currentAnimaton;
-
+    
     #region jump_related_property
+
     private bool isJumpPressed;
-    public float castDistance;
+    public float castDistance = 1.3f;
     private bool grounded;
-    private bool canDoubleJump = true;
+    [SerializeField, Range(0, 5)] private byte _totalJumpAvailable = 2;
+    private byte _jumpCount;
     [SerializeField] private float jumpForce = 750f;
     [SerializeField] private float doubleJumpForce = 600f;
+    [SerializeField] private float gravityForce = 10f;
+    private byte _airState = 0;//0 mean grounded, 1 mean up to air, 2 mean is falling
+    
     #endregion
-    private bool isAttackPressed;
-    private bool isAttacking;
-    private bool isFacingRight = true;  // For determining which way the player is currently facing.
-    private bool slidePressed;
 
+    #region AtackProperty
+    private bool isAttackPressed;
+    [SerializeField] private float attackDelay = 0.5f;
+    private bool isAttacking;
+    public Transform attackPoint;
+    public float attackRange = 0.5f;
+    public LayerMask enemyLayer;
+    [SerializeField] private sbyte attackDamage = 20;
+    #endregion
+    private bool isFacingRight = true;  // For determining which way the player is currently facing.
+    #region SlideProperty
+    private bool slidePressed;
     private bool isSliding;
     private bool canDash = true;
     private float dashingTime = 0.3f;
     private float dashingCooldown = 2f;
+    #endregion
 
     private TrailRenderer tr;
 
+    #region crouch_property
     private bool isCrouching;
-
     [SerializeField] private float crouchSlowdown = 0.4f;
+    #endregion
 
     public LayerMask groundLayer;
 
@@ -61,8 +67,6 @@ public class PlayerScript : BaseCharacterScript
     [SerializeField] private Vector2 wallJumpingPower = new Vector2(3f, 7f);
     #endregion
 
-    [SerializeField] private float attackDelay = 0.5f;
-
     #region PLAYER_ANIMATION
     //Animation States
     const string PLAYER_IDLE = "Player_idle";
@@ -76,6 +80,7 @@ public class PlayerScript : BaseCharacterScript
     const string PLAYER_GETUP_AFTER_SLIDE = "Player_slgup";
     const string PLAYER_WALL_SLIDING = "Player_wallslide";
     const string PLAYER_WALL_JUMP = "Player_walljump";
+    const string PLAYER_FALL = "Player_fall";
     #endregion
     // Start is called before the first frame update
     protected override void Start()
@@ -91,8 +96,20 @@ public class PlayerScript : BaseCharacterScript
         if (isWallJumping) return;
         if (isSliding) return;
         IsGrounded();
-        canDoubleJump = !(grounded && Input.GetButton("Jump"));
+        if (grounded)
+        {
+            _jumpCount = 0;
+            _airState = 0;
+        }
 
+        if (rb2d.velocity.y > 0)
+        {
+            _airState = 1;
+        }
+        else if (rb2d.velocity.y < 0)
+        {
+            _airState = 2;
+        }
         xAxis = Input.GetAxisRaw("Horizontal");
 
         if (Input.GetKeyDown(KeyCode.Space)) isJumpPressed = true;
@@ -106,14 +123,20 @@ public class PlayerScript : BaseCharacterScript
         {
             StartCoroutine(Dash());
         }
-        WallSlide();
         WallJumping();
+        WallSlide();
+        if (_airState != 0 ) gravityForce += Mathf.Abs(rb2d.mass * rb2d.velocity.y);
+        else gravityForce = 0;
     }
 
     void FixedUpdate()
     {
+        if(currentHealth==0) return;
+
         if (isSliding) return;
+
         if (isWallJumping) return;
+        
         if (isWallSliding)
         {
             ChangeAnimationState(PLAYER_WALL_SLIDING);
@@ -176,9 +199,11 @@ public class PlayerScript : BaseCharacterScript
                 if (grounded)
                 {
                     ChangeAnimationState(PLAYER_ATTACK);
+                    Attack();
                 }
                 else
                 {
+                    rb2d.AddForce(new Vector2(100,-500));
                     ChangeAnimationState(PLAYER_AIR_ATTACK);
                 }
 
@@ -192,19 +217,21 @@ public class PlayerScript : BaseCharacterScript
     #region jump_related_method
     private void Jump()
     {
-        if (isJumpPressed && (grounded || canDoubleJump))
+        if (isJumpPressed && (grounded || _jumpCount < _totalJumpAvailable))
         {
-            //reset vertical velocity to zero to make the double jump feel better
-            rb2d.velocity = new Vector2(rb2d.velocity.x, 0);
-            rb2d.AddForce(new Vector2(0, grounded ? jumpForce : doubleJumpForce));
+            var jumpForceApply = (grounded) ? jumpForce : doubleJumpForce;
+            _jumpCount++;
+             
+            if (_airState == 2)
+            {               
+                jumpForceApply += gravityForce;
+                Debug.Log(jumpForceApply);
+            }
+            rb2d.AddForce(Vector2.up*jumpForceApply);
             isJumpPressed = false;
-            
-            //disable double jump ability
-            canDoubleJump = (!grounded && canDoubleJump);
 
-            //when jumping the canDoubleJump is gonna be true 
             //the wall jump just has roll up and fall animation so we can reuse it
-            ChangeAnimationState(grounded? PLAYER_JUMP : PLAYER_WALL_JUMP );
+            if (!grounded) ChangeAnimationState(PLAYER_WALL_JUMP);
         }
     }
     public bool IsGrounded()
@@ -261,11 +288,17 @@ public class PlayerScript : BaseCharacterScript
         isWallJumping = false;
     }
     #endregion
-
+    #region gizmos_drawing
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireCube(transform.position - transform.up * castDistance, boxSize);
     }
+    private void OnDrawGizmosSelected()
+    {
+        if (attackPoint == null) return;
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange); 
+    }
+    #endregion
 
     void AttackComplete()
     {
@@ -279,8 +312,6 @@ public class PlayerScript : BaseCharacterScript
         animator.Play(newAnimation);
         currentAnimaton = newAnimation;
     }
-
-
     private void Flip()
     {
         // Switch the way the player is labelled as facing.
@@ -312,5 +343,22 @@ public class PlayerScript : BaseCharacterScript
         isSliding = false;
         yield return new WaitForSeconds(dashingCooldown);
         canDash = true;
+    }
+
+    private void Attack()
+    {
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
+        foreach (var enemy in hitEnemies)
+        {
+            var baseScript = enemy.GetComponent<BaseCharacterScript>();
+            baseScript.TakeDamage(attackDamage);
+            Vector2 knockBackDir;
+            if (isFacingRight)
+            {
+                knockBackDir = new Vector2(2, 1);
+            }
+            else knockBackDir = new Vector2(-2, 1);
+            baseScript.KnockBack(knockBackDir, 5f);
+        }
     }
 }
