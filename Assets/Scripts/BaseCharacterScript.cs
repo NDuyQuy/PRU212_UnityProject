@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BaseCharacterScript : MonoBehaviour
@@ -8,7 +7,7 @@ public class BaseCharacterScript : MonoBehaviour
     public sbyte currentHealth;
 
     private bool isInvincible;
-    public float invincibilityDuration;
+    public float invincibilityDuration = 5f;
 
     protected Rigidbody2D rb2d;
     protected Vector2 boxSize = new Vector2(1.8f,0.2f);
@@ -19,16 +18,12 @@ public class BaseCharacterScript : MonoBehaviour
         rb2d = GetComponent<Rigidbody2D>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
     public void TakeDamage(sbyte dmg)
     {
+        if(isInvincible) return;
         currentHealth -= dmg;
         if(currentHealth <= 0) Die();
+        StartCoroutine(InvincibilityCoroutine());
     }
 
     protected virtual void Die()
