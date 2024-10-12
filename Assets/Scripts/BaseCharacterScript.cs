@@ -8,21 +8,25 @@ public class BaseCharacterScript : MonoBehaviour
 
     private bool isInvincible;
     public float invincibilityDuration = 5f;
+    public float blinkInterval = 0.1f;
 
     protected Rigidbody2D rb2d;
-    protected Vector2 boxSize = new Vector2(1.8f,0.2f);
+    protected SpriteRenderer spriteRenderer;
+    [SerializeField]protected Vector2 boxSize;
     // Start is called before the first frame update
     protected virtual void Start()
     {
+        boxSize = new(1f,0.2f);
         currentHealth = maxHealth;
         rb2d = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
-
     public void TakeDamage(sbyte dmg)
     {
         if(isInvincible) return;
         currentHealth -= dmg;
         if(currentHealth <= 0) Die();
+        CheckHit();
         StartCoroutine(InvincibilityCoroutine());
     }
 
@@ -31,9 +35,9 @@ public class BaseCharacterScript : MonoBehaviour
         Destroy(gameObject);
     }
 
-    public void CheckHit()
+    protected virtual void CheckHit()
     {
-        //implement later for detecting being hit
+        StartCoroutine(BlinkEffect());
     }
 
     public virtual void KnockBack(Vector2 knockBackDirection, float knockbackForce)
@@ -48,5 +52,16 @@ public class BaseCharacterScript : MonoBehaviour
         isInvincible = false;
     }
 
+    private IEnumerator BlinkEffect()
+    {
+        float elapsedTime = 0f;
+        while (elapsedTime < invincibilityDuration)
+        {
+            spriteRenderer.enabled = !spriteRenderer.enabled; // Toggle the sprite visibility
+            yield return new WaitForSeconds(blinkInterval);
+            elapsedTime += blinkInterval;
+        }
+        spriteRenderer.enabled = true;
+    }
 
 }
