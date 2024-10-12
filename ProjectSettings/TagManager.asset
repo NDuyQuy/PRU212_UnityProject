@@ -39,8 +39,25 @@ TagManager:
   - 
   - 
   - 
-  - 
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Background
+    uniqueID: 1
+    locked: 0
+  - name: Ground
+    uniqueID: 2
+    locked: 0
+  - name: Enermy
+    uniqueID: 3
+    locked: 0
+  - name: Reward
+    uniqueID: 4
+    locked: 0
+  - name: Player
+    uniqueID: 5
+    locked: 0
+  - name: UI
+    uniqueID: 6
     locked: 0

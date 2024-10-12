@@ -8,7 +8,8 @@ public class BaseCharacterScript : MonoBehaviour
 
     private bool isInvincible;
     public float invincibilityDuration = 5f;
-
+    public bool IsKnockBack;
+    [SerializeField]private float knockBackDuration = 0.2f;
     protected Rigidbody2D rb2d;
     protected Vector2 boxSize = new Vector2(1.8f,0.2f);
     // Start is called before the first frame update
@@ -38,7 +39,12 @@ public class BaseCharacterScript : MonoBehaviour
 
     public virtual void KnockBack(Vector2 knockBackDirection, float knockbackForce)
     {
-        rb2d.AddForce(knockBackDirection * knockbackForce, ForceMode2D.Impulse);
+        if (!IsKnockBack)
+        {
+            IsKnockBack = true; // Start knockback
+            rb2d.AddForce(knockBackDirection * knockbackForce, ForceMode2D.Impulse);
+            StartCoroutine(HandleKnockBack(knockBackDuration));
+        }
     }
 
     private IEnumerator InvincibilityCoroutine()
@@ -48,5 +54,9 @@ public class BaseCharacterScript : MonoBehaviour
         isInvincible = false;
     }
 
-
+    private IEnumerator HandleKnockBack(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        IsKnockBack = false;
+    }
 }

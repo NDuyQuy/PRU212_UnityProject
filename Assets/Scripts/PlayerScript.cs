@@ -145,6 +145,7 @@ public class PlayerScript : BaseCharacterScript
 
     void FixedUpdate()
     {
+        if (IsKnockBack) return;
         if (currentHealth == 0) return;
 
         if (isSliding) return;
@@ -316,7 +317,7 @@ public class PlayerScript : BaseCharacterScript
     }
     private Vector2 MovementVelocity()
     {
-        Vector2 vel = new(0, rb2d.velocity.y);
+        Vector2 vel = new(rb2d.velocity.x, rb2d.velocity.y);
         if (xAxis != 0)
         {
             vel.x = isCrouching ? (xAxis * walkSpeed * crouchSlowdown) : (xAxis * walkSpeed);
@@ -368,4 +369,5 @@ public class PlayerScript : BaseCharacterScript
         }
     }
 
+    
 }
