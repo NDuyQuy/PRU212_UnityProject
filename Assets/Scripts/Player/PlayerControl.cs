@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Analytics;
 
-public class PlayerScript : BaseCharacterScript
+public class PlayerControl : BaseCharacterScript
 {
     #region Player_Animation_Enum
     public enum PlayerAnimation
@@ -20,25 +23,39 @@ public class PlayerScript : BaseCharacterScript
         Walk,
         Run,
         Crouch,
-        WallSlide
+        WallSlide,
+        Kick,
+        Archery,
+        AirArchery,
+        SAttack1,
+        SAttack2,
+        SAttack3,
+        Die
     }
     #endregion
+    public bool Weapon = false;//weapon equiped(hand-sword)
+    public bool SideWeapon = false;//side weapon equiped(kick-bow)
 
+    private GameObject _currentArrow;
+    private Transform _arrowStart;
+    [SerializeField] private GameObject _arrow;
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float dashingPower = 3f;
     private Animator animator;
 
-    private float xAxis;
+    private float _originalGravity;
     private string currentAnimaton;
 
-    #region jump_related_property
-
+    #region movement_ralated_property
+    private float xAxis;
+    private bool _isMoving;
     private bool isJumpPressed;
-    public float castDistance = 1.3f;
+    public float groundCastDistance = 1.3f;
+    public float ceilingCastDistance = 1.0f;
     private bool grounded;
     [SerializeField, Range(0, 5)] private byte _maxAirJump = 1;
     private byte _airJumpCount;
-    [SerializeField] private float jumpHeight = 15f;
+    [SerializeField] private float jumpHeight = 15f;//height of the jump
     private byte _airState = 0;//0 mean grounded, 1 mean up to air, 2 mean is falling
     private readonly float _coyoteTime = 0.1f;
 
@@ -46,25 +63,32 @@ public class PlayerScript : BaseCharacterScript
 
     #region AtackProperty
     private bool isAttackPressed;
-    [SerializeField] private float attackDelay = 0.5f;
+    private bool _isAirShooting;
+    private bool _isSideAttackPressed;
+    [SerializeField] private Vector2 _airKickForce = new (500,-500);
+    [SerializeField] private float attackDelay = 0.3f;
+    [SerializeField] private float sideAttackDelay = 0.5f;
     private bool isAttacking;
-    public Transform attackPoint;
+    public Transform AttackPoint;
+    public Transform AirKickPoint;
     public float attackRange = 0.5f;
     public LayerMask enemyLayer;
     [SerializeField] private sbyte attackDamage = 20;
+    private sbyte _attackCount = 0;
+    private bool _isAirKick = false;
     #endregion
     private bool isFacingRight = true;  // For determining which way the player is currently facing.
     #region Slide/DashProperty
-    private bool slidePressed;
     private bool isSliding;
     private bool canDash = true;
-    private float dashingTime = 0.3f;
-    private float dashingCooldown = 2f;
+    [SerializeField] private float dashingTime = 0.3f;
+    [SerializeField] private float dashingCooldown = 2f;
     private bool _canAirDash = false;
     #endregion
     #region crouch_property
     private bool isCrouching;
     [SerializeField] private float crouchSlowdown = 0.4f;
+    private BoxCollider2D boxCollider2d;
     #endregion
 
     public LayerMask groundLayer;
@@ -83,31 +107,24 @@ public class PlayerScript : BaseCharacterScript
     [SerializeField] private Vector2 wallJumpingPower = new Vector2(3f, 7f);
     #endregion
 
-    #region PLAYER_ANIMATION
-    //Animation States
-    const string PLAYER_IDLE = "Player_idle";
-    const string PLAYER_WALK = "Player_walk";
-    const string PLAYER_JUMP = "Player_jump";
-    const string PLAYER_ATTACK = "Player_attack";
-    const string PLAYER_AIR_ATTACK = "Player_air_attack";
-    const string PLAYER_CROUCHING = "Player_crouch";
-    const string PLAYER_RUN = "Player_run";
-    const string PLAYER_SLIDE = "Player_slide";
-    const string PLAYER_GETUP_AFTER_SLIDE = "Player_slgup";
-    const string PLAYER_WALL_SLIDING = "Player_wallslide";
-    const string PLAYER_WALL_JUMP = "Player_walljump";
-    const string PLAYER_FALL = "Player_fall";
-    #endregion
     // Start is called before the first frame update
     protected override void Start()
     {
         base.Start();
         animator = GetComponent<Animator>();
+        boxCollider2d = GetComponent<BoxCollider2D>();
+        _arrowStart = transform.Find("ArrowPoint");
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (IsDead)
+        {
+            this.Die();
+            currentHealth++;
+            return;
+        }
         if (isWallJumping) return;
         if (isSliding) return;
         IsGrounded();
@@ -115,13 +132,14 @@ public class PlayerScript : BaseCharacterScript
         {
             _airJumpCount = 0;
             _airState = 0;
+            _isAirKick = false;
         }
 
         if (rb2d.velocity.y > 0)
         {
             _airState = 1;
         }
-        else if (rb2d.velocity.y < 0 && !isWallSliding)
+        else if (rb2d.velocity.y < 0 && !isWallSliding && !grounded)
         {
             _airState = 2;
         }
@@ -132,43 +150,56 @@ public class PlayerScript : BaseCharacterScript
         if (Input.GetKeyDown(KeyCode.J)) isAttackPressed = true;
 
         if (Input.GetKeyDown(KeyCode.S)) isCrouching = true;
-        else if (Input.GetKeyUp(KeyCode.S)) isCrouching = false;
-
+        else if (Input.GetKeyUp(KeyCode.S) ||!Input.GetKeyDown(KeyCode.S)) 
+        {
+            if(!HasCeiling) isCrouching = false;
+        }
+        if (SideAttackPressed()) _isSideAttackPressed = true;
         if (Input.GetKeyDown(KeyCode.L) && canDash)
         {
             StartCoroutine(Dash());
         }
+        _isMoving = xAxis != 0 || isJumpPressed;
         WallJumping();
         WallSlide();
+        Crouch();
         UpdateAnimation();
     }
 
     void FixedUpdate()
     {
-        if (currentHealth == 0) return;
-
         if (isSliding) return;
-
         if (isWallJumping) return;
-
-
+        if(_isAirKick) return;
 
         Vector2 vel = MovementVelocity();
-
+        //asign new velocity to the rigid body
+        rb2d.velocity = vel;
         if (xAxis > 0 && !isFacingRight) Flip();
         if (xAxis < 0 && isFacingRight) Flip();
 
-        //asign new velocity to the rigid body
-        rb2d.velocity = vel;
+
         //check and perform attack if attacking
         Attack();
+        SideAttack();
 
     }
 
+    #region crouch
+    private void Crouch()
+    {
+        boxCollider2d.enabled = !isCrouching;
+    }
+    private bool HasCeiling
+    {
+        get => Physics2D.BoxCast(transform.position,boxSize,0,transform.up,ceilingCastDistance,groundLayer);
+    }
+         
+    #endregion
     #region jump_related_method
     public bool IsGrounded()
     {
-        grounded = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, castDistance, groundLayer);
+        grounded = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, groundCastDistance, groundLayer);
         return grounded;
     }
     #endregion
@@ -176,7 +207,7 @@ public class PlayerScript : BaseCharacterScript
     private bool IsOnWall()
     {
         var hit = Physics2D.OverlapCircle(wallCheck.position, wallDistance, wallLayer);
-        return (hit && !grounded);
+        return hit && !grounded;
     }
     private void WallSlide()
     {
@@ -223,12 +254,12 @@ public class PlayerScript : BaseCharacterScript
     #region gizmos_drawing
     private void OnDrawGizmos()
     {
-        Gizmos.DrawWireCube(transform.position - transform.up * castDistance, boxSize);
+        Gizmos.DrawWireCube(transform.position - transform.up * groundCastDistance, boxSize);
     }
     private void OnDrawGizmosSelected()
     {
-        if (attackPoint == null) return;
-        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawCube(transform.position + transform.up*ceilingCastDistance,boxSize);
     }
     #endregion
     #region attack_related_method
@@ -240,32 +271,92 @@ public class PlayerScript : BaseCharacterScript
             if (!isAttacking)
             {
                 isAttacking = true;
-
+                _attackCount++;
+                _attackCount = (sbyte)((_attackCount > 3) ? 1 : _attackCount);//hand attack only has 3 step 
                 if (grounded)
                 {
-                    ChangeAnimationState(nameof(PlayerAnimation.Attack));
-                    HitDamage();
+                    //Weapon = true -> has sword
+                    string attackAnimation = (Weapon ? "SAttack" : "Attack") + _attackCount.ToString();
+                    ChangeAnimationState(attackAnimation);
                 }
                 else
                 {
-                    rb2d.AddForce(new Vector2(300, -500));
+                    _isAirKick = true;
+                    Vector2 multiplyForce = isFacingRight?new(1,1):new(-1,1);
+                    rb2d.AddForce(_airKickForce*multiplyForce);
                     ChangeAnimationState(nameof(PlayerAnimation.AirAttack));
                 }
+                HitDamage(10);
                 Invoke(nameof(AttackComplete), attackDelay);
             }
         }
     }
+    private void SideAttack()
+    {
+        if (_isSideAttackPressed)
+        {
+            currentHealth--;
+            _isSideAttackPressed = false;
+            if (!isAttacking)
+            {
+                isAttacking = true;
+                if (!SideWeapon)
+                {
+                    ChangeAnimationState(nameof(PlayerAnimation.Kick));
+                    HitDamage();
+                }
+                else
+                {
+                    if (
+                        (!isFacingRight && _arrow.transform.localScale.x > 0)
+                        || (isFacingRight && _arrow.transform.localScale.x < 0)
+                        )
+                    {
+                        Vector2 newScale = _arrow.transform.localScale;
+                        newScale.x *= -1;
+                        _arrow.transform.localScale = newScale;
+                    }
+
+                    _currentArrow = Instantiate(_arrow, _arrowStart.position, Quaternion.identity);
+                    ChangeAnimationState(grounded ?
+                                        nameof(PlayerAnimation.Archery) :
+                                        nameof(PlayerAnimation.AirArchery));
+                    _isAirShooting = !grounded;
+                    if (_isAirShooting)
+                    {
+                        _originalGravity = rb2d.gravityScale;
+                        rb2d.gravityScale = 0;
+                        rb2d.velocity = new Vector2(rb2d.velocity.x, 0);
+                    }
+                }
+                Invoke(nameof(AttackComplete), sideAttackDelay);
+            }
+        }
+    }
+
     void AttackComplete()
     {
         isAttacking = false;
+        if (_currentArrow != null)
+        {
+            var arrowController = _currentArrow.GetComponent<Arrow>();
+            arrowController.Shoot(xDirection: isFacingRight ? 1 : -1);
+        }
+        if (_isAirShooting)
+        {
+            _isAirShooting = false;
+            rb2d.gravityScale = _originalGravity;
+        }
     }
-    private void HitDamage()
+    private void HitDamage(sbyte damage = 0)
     {
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
+        Collider2D[] hitEnemies =
+            Physics2D.OverlapCircleAll(_isAirKick==false ? AttackPoint.position : AirKickPoint.position
+                                        , attackRange, enemyLayer);
         foreach (var enemy in hitEnemies)
         {
             var baseScript = enemy.GetComponent<BaseCharacterScript>();
-            baseScript.TakeDamage(attackDamage);
+            baseScript.TakeDamage(damage);
         }
     }
     #endregion
@@ -305,9 +396,9 @@ public class PlayerScript : BaseCharacterScript
 
             yield return new WaitForSeconds(dashingTime);
 
-            if (grounded)
-                ChangeAnimationState(PLAYER_GETUP_AFTER_SLIDE);
-            yield return new WaitForSeconds(0.2f);
+            // if (grounded)
+            //     ChangeAnimationState(nameof(PlayerAnimation.));
+            // yield return new WaitForSeconds(0.2f);
             rb2d.gravityScale = originalGravity;
             isSliding = false;
             yield return new WaitForSeconds(dashingCooldown);
@@ -316,7 +407,8 @@ public class PlayerScript : BaseCharacterScript
     }
     private Vector2 MovementVelocity()
     {
-        Vector2 vel = new(0, rb2d.velocity.y);
+        Vector2 vel = new(rb2d.velocity.x, rb2d.velocity.y);
+
         if (xAxis != 0)
         {
             vel.x = isCrouching ? (xAxis * walkSpeed * crouchSlowdown) : (xAxis * walkSpeed);
@@ -325,13 +417,17 @@ public class PlayerScript : BaseCharacterScript
         {
             vel.x = 0;
         }
-        if (isJumpPressed && (grounded || _airJumpCount < _maxAirJump))
+        if (isJumpPressed)
         {
-            _airJumpCount++;
             isJumpPressed = false;
-            vel.y = jumpHeight;
-            ChangeAnimationState(grounded ? nameof(PlayerAnimation.Jump) : nameof(PlayerAnimation.WallJump));
+            if (grounded || _airJumpCount < _maxAirJump)
+            {
+                _airJumpCount++;
+                vel.y = jumpHeight;
+                ChangeAnimationState(grounded ? nameof(PlayerAnimation.Jump) : nameof(PlayerAnimation.WallJump));
+            }
         }
+
         return vel;
     }
 
@@ -362,10 +458,28 @@ public class PlayerScript : BaseCharacterScript
                 ChangeAnimationState(nameof(PlayerAnimation.Idle));
             }
         }
-        if (_airState == 2)
+        if (_airState == 2 && !isAttacking && !_isAirKick)
         {
             ChangeAnimationState(nameof(PlayerAnimation.Fall));
         }
     }
+    private bool SideAttackPressed() => Input.GetKeyDown(KeyCode.U);
+
+    protected override void Die()
+    {
+        float animationLength = animator.runtimeAnimatorController
+                                .animationClips
+                                .FirstOrDefault(c => c.name == nameof(PlayerAnimation.Die)).length;
+        ChangeAnimationState(nameof(PlayerAnimation.Die));
+        // Debug.Log(animationLength);
+        float elapsedTime = 0f;
+        while (elapsedTime < animationLength)
+        {
+            elapsedTime += Time.deltaTime;
+        }
+        base.Die();
+    }
+
+    private bool IsDead => currentHealth <= 0;
 
 }
