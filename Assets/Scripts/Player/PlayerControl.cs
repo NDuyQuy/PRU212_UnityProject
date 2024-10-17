@@ -60,6 +60,7 @@ public class PlayerControl : BaseCharacterScript
         _animator = GetComponent<Animator>();
         _boxCol2d = GetComponent<BoxCollider2D>();
         _plCol2d = GetComponent<PolygonCollider2D>();
+        _audio = GetComponent<AudioSource>();
         _orgnBoxColSize = _boxCol2d.size;
         _arrowStart = transform.Find("ArrowPoint");
         _bgEffects = transform.Find("BgEffect").gameObject.GetComponent<Effect>();
@@ -69,7 +70,7 @@ public class PlayerControl : BaseCharacterScript
     // Update is called once per frame
     void Update()
     {
-        if(gameObject==null) return;
+        if (gameObject == null) return;
         if (IsDead)
         {
             Die();
@@ -116,10 +117,12 @@ public class PlayerControl : BaseCharacterScript
         if (DashPressed)
         {
             _dashPressed = true;
+            PlayAudio(Audios.holding, loop: true);
         }
         else if (DashReleased)
         {
             _dashPressed = false;
+            StopAudio();
             PerformDash();
             _bgEffects.Enable = false;
             _dashTiming = 0;
@@ -128,7 +131,7 @@ public class PlayerControl : BaseCharacterScript
         {
             _dashTiming += Time.deltaTime;
             _bgEffects.Enable = true;
-            _bgEffects.EffectAnimation = _dashTiming>_superDashCpltInterval? "holding2":"holding1";
+            _bgEffects.EffectAnimation = _dashTiming > _superDashCpltInterval ? "holding2" : "holding1";
         }
         WallJumping();
         WallSlide();
@@ -225,6 +228,9 @@ public class PlayerControl : BaseCharacterScript
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(AirKickPoint.transform.position, attackRange);
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireCube(AttackPoint.transform.position,SWORD_HITBOX);
         // Gizmos.DrawCube(transform.position + transform.up * ceilingCastDistance, boxSize);
     }
     #endregion
@@ -248,6 +254,7 @@ public class PlayerControl : BaseCharacterScript
     private sbyte _attackCount = 0;
     private bool _isAirKick = false;
     [SerializeField] private sbyte _airKickDamage = 5;
+    private readonly Vector2 SWORD_HITBOX = new(1.5f,3);
     private bool isFacingRight = true;  // For determining which way the player is currently facing.
     private void Attack()
     {
@@ -263,6 +270,7 @@ public class PlayerControl : BaseCharacterScript
                 {
                     //Weapon = true -> has sword
                     string attackAnimation = (Weapon ? "SAttack" : "Attack") + _attackCount.ToString();
+                    PlayAudio(Weapon ? Audios.sword_slash : Audios.punch);
                     ChangeAnimationState(attackAnimation);
                 }
                 else
@@ -272,7 +280,7 @@ public class PlayerControl : BaseCharacterScript
                     rb2d.AddForce(_airKickForce * multiplyForce);
                     ChangeAnimationState(nameof(PlayerAnimation.AirAttack));
                 }
-                HitDamage(10);
+                HitDamage(_attackDamage);
                 Invoke(nameof(AttackComplete), attackDelay);
             }
         }
@@ -306,6 +314,7 @@ public class PlayerControl : BaseCharacterScript
                     ChangeAnimationState(grounded ?
                                         nameof(PlayerAnimation.Archery) :
                                         nameof(PlayerAnimation.AirArchery));
+                                        PlayAudio(Audios.arrow);
                     _isAirShooting = !grounded;
                     if (_isAirShooting)
                     {
@@ -335,13 +344,14 @@ public class PlayerControl : BaseCharacterScript
     }
     private void HitDamage(sbyte damage = 0)
     {
-        Collider2D[] hitEnemies =
-            Physics2D.OverlapCircleAll(_isAirKick == false ? AttackPoint.position : AirKickPoint.position
-                                        , attackRange, enemyLayer);
+        Collider2D[] hitEnemies = !Weapon?
+            Physics2D.OverlapCircleAll(AttackPoint.position, attackRange, enemyLayer)
+            :Physics2D.OverlapBoxAll(AttackPoint.position,SWORD_HITBOX,0,enemyLayer);
         foreach (var enemy in hitEnemies)
         {
             var baseScript = enemy.GetComponent<BaseCharacterScript>();
             baseScript.TakeDamage(damage);
+            PlayAudio(Weapon?Audios.sword_slash:Audios.kick);
         }
     }
 
@@ -396,6 +406,7 @@ public class PlayerControl : BaseCharacterScript
             float originalGravity = rb2d.gravityScale;
             rb2d.gravityScale = 0f;
             rb2d.velocity = new Vector2(transform.localScale.x * _dashingPower, 0f);
+            PlayAudio(Audios.dash);
             _boxCol2d.enabled = false;
             if (grounded)
                 ChangeAnimationState(nameof(PlayerAnimation.Slide));
@@ -441,6 +452,7 @@ public class PlayerControl : BaseCharacterScript
             ? _superDashVel
             : _superDashVel * -1
             , 0);
+        PlayAudio(Audios.super_dash);
     }
     private void OnCollisionEnter2D(Collision2D collision2D)
     {
@@ -456,6 +468,7 @@ public class PlayerControl : BaseCharacterScript
         _plCol2d.enabled = true;//enable polygon colider
         rb2d.gravityScale = _originalGravity;
         _boxCol2d.size = _orgnBoxColSize;//change back the size to original one
+        StopAudio();
     }
     private bool AnyKeyPressed => Input.anyKeyDown;
     #endregion
@@ -565,6 +578,7 @@ public class PlayerControl : BaseCharacterScript
         currentAnimaton = newAnimation;
     }
     #endregion
+    #region Die
     protected override void Die(float delayTime = 0)
     {
         float animationLength = _animator.runtimeAnimatorController
@@ -574,5 +588,28 @@ public class PlayerControl : BaseCharacterScript
         base.Die(animationLength);
     }
     private bool IsDead => currentHealth <= 0;
-
+    #endregion
+    #region audio
+    private AudioSource _audio;
+    private readonly string AUDIO_FOLDER = "Audios/";
+    enum Audios
+    {
+        arrow
+        , holding
+        , punch
+        , sword_slash
+        , dash
+        , super_dash
+        , kick
+    }
+    private void PlayAudio(Audios audioName, bool loop = false)
+    {
+        var audioClip = Resources.Load<AudioClip>(AUDIO_FOLDER + audioName.ToString());
+        _audio.clip = audioClip;
+        _audio.loop = loop;
+        _audio.Play();
+        // StartCoroutine(StopAudio(audioClip.length));
+    }
+    private void StopAudio() => _audio.Stop();
+    #endregion
 }
