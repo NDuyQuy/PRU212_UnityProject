@@ -69,4 +69,9 @@ public class BaseCharacterScript : MonoBehaviour
         spriteRenderer.enabled = true;
     }
 
+    public void AddHearth(sbyte value)
+    {
+        currentHealth += value;
+        currentHealth = (sbyte)Mathf.Min(currentHealth+value, maxHealth);
+    }
 }
