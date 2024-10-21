@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-public class AutoMove : PlatformControl
+public class Auto : PlatformControl
 {
     [SerializeField] private Vector2 _velocity = new(0, 2);
     private Vector2 _startPosition;
