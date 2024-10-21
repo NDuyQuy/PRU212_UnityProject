@@ -207,7 +207,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9011073034231848230, guid: ad08c5864db579f49b27da8fb75dc73e, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -384,20 +384,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d0fcdecaadb0da41ba417ba1c1bdf38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 9
+  viewRange: 10
   delayTrackingPlayerTime: 0.8
   playerLayerMask:
     serializedVersion: 2
     m_Bits: 128
-  delayCastSkillTime: 1.5
-  moveSpeed: 2
-  patrolDelay: 2
+  delayCastSkillTime: 2
+  moveSpeed: 3
+  patrolDelay: 1
   leftLimitPatrolPoint: {fileID: 1540627741}
   rightLimitPatrolPoint: {fileID: 1206054747}
   lazerPrefab: {fileID: 8507616642569233106, guid: f4ac5a34028e02442aecc42ef77f35ce, type: 3}
   lazerDamagePerSecond: 1
   spawnLazerPoint: {fileID: 431229797}
-  lazorShootingTime: 4
+  lazorShootingTime: 2
   projectilePrefab: {fileID: 6582615474641024375, guid: 492f34d9f2210ee4184071f56ef5c4db, type: 3}
   rangeDamage: 4
   spawnProjectilePoint: {fileID: 2100424887}
@@ -458,7 +458,7 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 937231034}
-  m_BodyType: 0
+  m_BodyType: 1
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0

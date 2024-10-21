@@ -91,6 +91,8 @@ public class GolemBoss : MonoBehaviour
     private Vector2 attackMeleePosition;
     private float idleTimer;
     private bool isMeleeAttacking;
+    private bool isLazorAttacking;
+    private bool isRangeAttacking;
 
     #region Draw Gizmo 
     private void OnDrawGizmosSelected()
@@ -125,7 +127,74 @@ public class GolemBoss : MonoBehaviour
             case State.AttackMelee:
                 HandleAttackMelle();
                 break;
+
+            case State.AttackLazor:
+                HandleAttackLazor();
+                break;
+
+            case State.AttackRange:
+                HandleAttackRange();
+                break;
         }
+    }
+
+    private void HandleTrackPlayer()
+    {
+        trackingPlayerTimer += Time.fixedDeltaTime;
+        if (trackingPlayerTimer >= delayTrackingPlayerTime)
+        {
+            Collider2D hit = TrackPlayer();
+            isSeePlayer = hit != null;
+
+            if (isSeePlayer)
+            {
+                attackMeleePosition = GetAttackMeleePosition(hit);
+                //Debug.Log("See player: " + isSeePlayer);
+            }
+            else
+            {
+                //Debug.Log("Don't see player");
+               if(!isLazorAttacking && !isRangeAttacking)  ChangeState(State.Patrol);
+            }
+
+            trackingPlayerTimer = 0;
+        }
+        if (isSeePlayer)
+        {
+            HandleSwitchSkill();
+        }
+    }
+
+    private Collider2D TrackPlayer()
+    {
+        Collider2D hit = Physics2D.OverlapCircle(transform.position, viewRange, playerLayerMask);
+        return hit;
+    }
+
+    private void HandleSwitchSkill()
+    {
+        delayCastSkillTimer += Time.fixedDeltaTime;
+        if (delayCastSkillTimer >= delayCastSkillTime && state == State.Patrol)
+        {
+            int randomSkill = UnityEngine.Random.Range(0, 3);
+            if (randomSkill == 0)
+            {
+                ChangeState(State.AttackMelee);
+                animator.SetBool(AnimatorParametor.IsWalk.ToString(), true);
+            }
+            if (randomSkill == 1) {
+                ChangeState(State.AttackLazor);
+            }
+            if (randomSkill == 2) ChangeState(State.AttackRange);
+            Debug.Log("Cast skill: " + state.ToString());
+        }
+    }
+
+    private void ChangeState(State state)
+    {
+        if (state == this.state) return;
+        Debug.Log($"Change state {this.state.ToString()} to state {state.ToString()}");
+        this.state = state;
     }
 
     #region Patrol
@@ -151,52 +220,8 @@ public class GolemBoss : MonoBehaviour
         }
     }
     #endregion
-
-    private void HandleSwitchSkill()
-    {
-        delayCastSkillTimer += Time.fixedDeltaTime;
-        if (delayCastSkillTimer >= delayCastSkillTime && state == State.Patrol)
-        {
-            //int randomSkill = UnityEngine.Random.Range(0, 3);
-            int randomSkill = 0;
-            if (randomSkill == 0)
-            {
-                ChangeState(State.AttackMelee);
-                animator.SetBool(AnimatorParametor.IsWalk.ToString(), true);
-            }
-            if (randomSkill == 1) ChangeState(State.AttackLazor); 
-            if (randomSkill == 2) ChangeState(State.AttackRange);
-            Debug.Log("Cast skill: " + state.ToString());
-        }
-    }
-
-    private void HandleTrackPlayer()
-    {
-        trackingPlayerTimer += Time.fixedDeltaTime;
-        if (trackingPlayerTimer >= delayTrackingPlayerTime)
-        {
-            Collider2D hit = TrackPlayer();
-            isSeePlayer = hit != null;
-
-            if (isSeePlayer)
-            {
-                attackMeleePosition = GetAttackMeleePosition(hit);
-                //Debug.Log("See player: " + isSeePlayer);
-            }
-            else
-            {
-                //Debug.Log("Don't see player");
-                ChangeState(State.Patrol);
-            }
-
-            trackingPlayerTimer = 0;
-        }
-        if (isSeePlayer)
-        {
-            HandleSwitchSkill();
-        }
-    }
-
+    
+    #region Melee Attack
     private Vector3 GetAttackMeleePosition(Collider2D hit)
     {
         var attackRange = Vector2.Distance(transform.position, meleePoint.position);
@@ -213,14 +238,6 @@ public class GolemBoss : MonoBehaviour
         return attackPos;
     }
 
-    private void ChangeState(State state)
-    {
-        if (state == this.state) return;
-        Debug.Log($"Change state {this.state.ToString()} to state {state.ToString()}");
-        this.state = state;
-    }
-
-    #region Melee Attack
     private void HandleAttackMelle()
     {
         if (isMeleeAttacking) return; 
@@ -246,15 +263,31 @@ public class GolemBoss : MonoBehaviour
 
     public void EndMeleeAttack()
     {
-        delayCastSkillTime = 0;
         isMeleeAttacking = false;
-
-        ChangeState(State.Patrol);
-        animator.SetBool(AnimatorParametor.IsWalk.ToString(), false);
+        CombackToPatrol();
     }
     #endregion
 
+    private void CombackToPatrol()
+    {
+        delayCastSkillTime = 0;
+        ChangeState(State.Patrol);
+        animator.SetBool(AnimatorParametor.IsWalk.ToString(), false);
+    }
+
     #region Lazor Attack
+    private void HandleAttackLazor()
+    {
+        if (isLazorAttacking) return;
+        Vector2 shootDirection = attackMeleePosition - (Vector2)transform.position;
+        if ((shootDirection.x < 0 && transform.localScale.x > 0) || (shootDirection.x > 0 && transform.localScale.x < 0))
+        {
+            Flip();
+        }
+        animator.SetTrigger(AnimatorParametor.AttackLazerStartTrigger.ToString());
+        isLazorAttacking = true;
+    }
+
     public void SpawnLazor()
     {
         BossLazor bossLazor = Instantiate(lazerPrefab, spawnLazerPoint.position, Quaternion.identity);
@@ -263,12 +296,26 @@ public class GolemBoss : MonoBehaviour
 
     public void EndLazorAttack()
     {
-        ChangeState(State.Patrol);
+        isLazorAttacking = false;
         animator.SetTrigger(AnimatorParametor.AttackLazerEndTrigger.ToString());
+        CombackToPatrol();
     }
     #endregion
 
     #region Range Attack
+    private void HandleAttackRange()
+    {
+        if (isRangeAttacking) return;
+        Vector2 shootDirection = attackMeleePosition - (Vector2)transform.position;
+        if ((shootDirection.x < 0 && transform.localScale.x > 0) || (shootDirection.x > 0 && transform.localScale.x < 0))
+        {
+            Flip();
+        }
+        animator.SetTrigger(AnimatorParametor.AttackRangeTrigger.ToString());
+        isRangeAttacking = true;
+    }
+
+
     public void SpawnProjectile()
     {
         BossProjectile bossProjectile = Instantiate(projectilePrefab, spawnProjectilePoint.position, Quaternion.identity);
@@ -276,17 +323,17 @@ public class GolemBoss : MonoBehaviour
         bossProjectile.SetMoveDirection(transform.localScale.x > 0 ? Vector2.right : Vector2.left);
         bossProjectile.SetGolemBoss(this);
     }
+
+    public void EndAttackRange()
+    {
+        isRangeAttacking = false;
+        CombackToPatrol();
+    }
     #endregion
 
     public void DeductHealthPlayer(int damage) // Need to add Player Health Component
     {
         Debug.Log("Deduct Health Player: " +  damage);
-    }
-
-    private Collider2D TrackPlayer()
-    {
-        Collider2D hit = Physics2D.OverlapCircle(transform.position, viewRange, playerLayerMask);
-        return hit;
     }
 
     private bool Move(Vector2 position, float moveSpeed)
