@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.17, y: 0.06, z: 0}
-  m_LocalScale: {x: -5, y: 5, z: 0}
+  m_LocalScale: {x: 5, y: 5, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -176,9 +176,9 @@ MonoBehaviour:
   arrowPrefab: {fileID: 1030948736269475130}
   explosion: {fileID: 4228848964831192372, guid: 40567db8067661c479e3d92245d646d9, type: 3}
   basedDamage: 10
-  CurrentEffect: 1
+  CurrentEffect: 2
   enemyTarget: {fileID: 4173032335991003492, guid: 0f7e3082b1dbe3345838ca61e3e8a2c5, type: 3}
-  Level: 4
+  Level: 3
   IsLevelUp: 0
   shootForce: 700
 --- !u!96 &3714485814721431926
