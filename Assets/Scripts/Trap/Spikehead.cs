@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Spikehead : EnemyDamage
+public class Spikehead : BaseTrap
 {
     [Header("SpikeHead Attributes")]
     [SerializeField] private float speed;

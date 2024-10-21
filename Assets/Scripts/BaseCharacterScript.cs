@@ -67,6 +67,6 @@ public class BaseCharacterScript : MonoBehaviour
     public void AddHearth(sbyte value)
     {
         currentHealth += value;
-        currentHealth = (sbyte)Mathf.Min(currentHealth, maxHealth);
+        currentHealth = (sbyte)Mathf.Min(currentHealth+value, maxHealth);
     }
 }

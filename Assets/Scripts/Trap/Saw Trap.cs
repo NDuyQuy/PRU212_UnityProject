@@ -6,9 +6,9 @@ public class SawTrap : MonoBehaviour
 {
     [SerializeField] private float movementDistance;
     [SerializeField] private float movementSpeed;
+    
     private bool movingLeft;
     private float leftEdge;
-
     private float rightEdge;
     [SerializeField] private sbyte damage;
     private void Awake()
@@ -42,7 +42,7 @@ public class SawTrap : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.tag == "Player")
+        if (collision.CompareTag("Player"))
         {
             var player = collision.gameObject.GetComponent<BaseCharacterScript>();
         //    var playerRB2d = collision.gameObject.GetComponent<Rigidbody2D>();

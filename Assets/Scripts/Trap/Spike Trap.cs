@@ -15,8 +15,7 @@ public class SpikeTrap : MonoBehaviour
             player.TakeDamage(damage);
             //check if the velocity of the player character to implement the knockback direction
             //velocity > 0 -> going right -> knockback xAxis direction = left
-            player.KnockBack(new Vector2((playerRB2d.velocity.x > 0) ? -1 : 1, 1), thrust);
-            Debug.Log("hit");
+            player.KnockBack(new Vector2((playerRB2d.velocity.x > 0) ? -1 : 3, 1), thrust);
         }
     }
 }

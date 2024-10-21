@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyProjectile : EnemyDamage
+public class EnemyProjectile : BaseTrap
 {
     [SerializeField] private float speed;
     [SerializeField] private float resetTime;
@@ -22,8 +20,7 @@ public class EnemyProjectile : EnemyDamage
         if (lifetime > resetTime)
             gameObject.SetActive(false);
     }
-
-    private void OnTriggerEnter2D(Collider2D collision)
+    protected override void OnTriggerEnter2D(Collider2D collision)
     {
         base.OnTriggerEnter2D(collision); //Execute logic from parent script first
         gameObject.SetActive(false); //When this hits any object deactivate arrow
