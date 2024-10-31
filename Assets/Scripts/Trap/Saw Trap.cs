@@ -28,7 +28,13 @@ public class SawTrap : MonoBehaviour
                 transform.position = new Vector3(transform.position.x - movementSpeed * Time.deltaTime, transform.position.y, transform.position.z);
             }
             else
+            {
                 movingLeft = false;
+                Vector2 theScale = transform.localScale;
+                theScale.x *= -1;
+                transform.localScale = theScale;
+            }
+
         }
         else
         {
@@ -38,6 +44,9 @@ public class SawTrap : MonoBehaviour
             }
             else
                 movingLeft = true;
+                Vector2 theScale = transform.localScale;
+                theScale.x *= -1;
+                transform.localScale = theScale;
         }
     }
     private void OnTriggerEnter2D(Collider2D collision)
