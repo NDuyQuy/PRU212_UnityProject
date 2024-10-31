@@ -49,9 +49,8 @@ public class PlayerControl : BaseCharacterScript
     #endregion
 
     private float _originalGravity;
-    #region wall_related_property
-
-    #endregion
+    
+    public int Currency { get; set; } = 0;
 
     // Start is called before the first frame update
     protected override void Start()
@@ -138,6 +137,8 @@ public class PlayerControl : BaseCharacterScript
         Crouch();
         UpdateAnimation();
         AirKick();
+
+        DetectMovingPlatform();
     }
     void FixedUpdate()
     {
@@ -149,9 +150,15 @@ public class PlayerControl : BaseCharacterScript
             if (AnyKeyPressed) StopSuperDash();
             return;
         }
-        Vector2 vel = MovementVelocity();
+        if (previousXAxis != xAxis && xAxis == 0)
+        {
+            MoveReleased = true;
+        }
+        if (previousXAxis != xAxis) previousXAxis = xAxis;
         //asign new velocity to the rigid body
+        Vector2 vel = MovementVelocity();
         rb2d.velocity = vel;
+
         if (xAxis > 0 && !isFacingRight) Flip();
         if (xAxis < 0 && isFacingRight) Flip();
 
@@ -159,6 +166,12 @@ public class PlayerControl : BaseCharacterScript
         //check and perform attack if attacking
         Attack();
         SideAttackAction();
+
+        //asign platform velocity to the palyer rigid body
+        if(_platformRb2d!=null)
+        {
+            rb2d.velocity += _platformRb2d.velocity;
+        }
     }
     #region  wall jump and slide
     public LayerMask wallLayer;
@@ -230,7 +243,7 @@ public class PlayerControl : BaseCharacterScript
         Gizmos.DrawWireSphere(AirKickPoint.transform.position, attackRange);
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireCube(AttackPoint.transform.position,SWORD_HITBOX);
+        Gizmos.DrawWireCube(AttackPoint.transform.position, SWORD_HITBOX);
         // Gizmos.DrawCube(transform.position + transform.up * ceilingCastDistance, boxSize);
     }
     #endregion
@@ -254,7 +267,7 @@ public class PlayerControl : BaseCharacterScript
     private sbyte _attackCount = 0;
     private bool _isAirKick = false;
     [SerializeField] private sbyte _airKickDamage = 5;
-    private readonly Vector2 SWORD_HITBOX = new(1.5f,3);
+    private readonly Vector2 SWORD_HITBOX = new(1.5f, 3);
     private bool isFacingRight = true;  // For determining which way the player is currently facing.
     private void Attack()
     {
@@ -314,7 +327,7 @@ public class PlayerControl : BaseCharacterScript
                     ChangeAnimationState(grounded ?
                                         nameof(PlayerAnimation.Archery) :
                                         nameof(PlayerAnimation.AirArchery));
-                                        PlayAudio(Audios.arrow);
+                    PlayAudio(Audios.arrow);
                     _isAirShooting = !grounded;
                     if (_isAirShooting)
                     {
@@ -344,14 +357,14 @@ public class PlayerControl : BaseCharacterScript
     }
     private void HitDamage(sbyte damage = 0)
     {
-        Collider2D[] hitEnemies = !Weapon?
+        Collider2D[] hitEnemies = !Weapon ?
             Physics2D.OverlapCircleAll(AttackPoint.position, attackRange, enemyLayer)
-            :Physics2D.OverlapBoxAll(AttackPoint.position,SWORD_HITBOX,0,enemyLayer);
+            : Physics2D.OverlapBoxAll(AttackPoint.position, SWORD_HITBOX, 0, enemyLayer);
         foreach (var enemy in hitEnemies)
         {
             var baseScript = enemy.GetComponent<BaseCharacterScript>();
             baseScript.TakeDamage(damage);
-            PlayAudio(Weapon?Audios.sword_slash:Audios.kick);
+            PlayAudio(Weapon ? Audios.sword_slash : Audios.kick);
         }
     }
 
@@ -477,6 +490,8 @@ public class PlayerControl : BaseCharacterScript
     private bool CrouchPressed => Input.GetKeyDown(KeyCode.S);
     private bool CrounchReleased => Input.GetKeyUp(KeyCode.S);
     private bool JumpPressed => Input.GetKeyDown(KeyCode.Space);
+    private float previousXAxis;
+    private bool MoveReleased;
     private float xAxis;
     private bool isJumpPressed;
     public float groundCastDistance = 1.3f;
@@ -486,22 +501,21 @@ public class PlayerControl : BaseCharacterScript
     private byte _airJumpCount;
     [SerializeField] private float jumpHeight = 15f;//height of the jump
     private byte _airState = 0;//0 mean grounded, 1 mean up to air, 2 mean is falling
-    private readonly float _coyoteTime = 0.1f;
     private bool isCrouching;
     [SerializeField] private float crouchSlowdown = 0.4f;
     [SerializeField] private float walkSpeed = 5f;
     private Vector2 MovementVelocity()
     {
         Vector2 vel = new(rb2d.velocity.x, rb2d.velocity.y);
-
-        if (xAxis != 0)
-        {
-            vel.x = isCrouching ? (xAxis * walkSpeed * crouchSlowdown) : (xAxis * walkSpeed);
-        }
-        else
+        if (MoveReleased)
         {
             vel.x = 0;
         }
+        if (xAxis != 0)
+        {
+            vel.x += isCrouching ? (xAxis * walkSpeed * crouchSlowdown) : (xAxis * walkSpeed);
+        }
+
         if (isJumpPressed)
         {
             isJumpPressed = false;
@@ -512,7 +526,6 @@ public class PlayerControl : BaseCharacterScript
                 ChangeAnimationState(grounded ? nameof(PlayerAnimation.Jump) : nameof(PlayerAnimation.WallJump));
             }
         }
-
         return vel;
     }
     private void Crouch()
@@ -611,5 +624,25 @@ public class PlayerControl : BaseCharacterScript
         // StartCoroutine(StopAudio(audioClip.length));
     }
     private void StopAudio() => _audio.Stop();
+    #endregion
+    #region Detect Moving Platform
+    private Rigidbody2D _platformRb2d;
+    private void DetectMovingPlatform()
+    {
+        if(grounded)
+        {
+            var detection = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, groundCastDistance, groundLayer);
+            if(detection.collider.CompareTag("MovingPlatform"))
+            {
+                _platformRb2d = detection.collider.GetComponent<Rigidbody2D>();
+            }
+            else
+            {
+                _platformRb2d = null;
+            }
+        }
+        else
+            transform.parent = null;
+    }
     #endregion
 }
