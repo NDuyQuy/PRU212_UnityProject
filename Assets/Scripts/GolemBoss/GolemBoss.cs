@@ -1,4 +1,4 @@
-using TMPro;
+﻿using TMPro;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
@@ -7,11 +7,11 @@ public class GolemBoss : MonoBehaviour
     private enum State
     {
         Death,
-        Chase,
-        Patrol,
-        AttackLazor,
-        AttackMelee,
-        AttackRange
+        Chase, // đuổi theo
+        Patrol, // đi tuần
+        AttackLazor, 
+        AttackMelee, // cận chiến
+        AttackRange // bắn đạn
     }
 
     private enum AnimatorParametor
@@ -30,7 +30,6 @@ public class GolemBoss : MonoBehaviour
     [SerializeField]
     private float viewRange = 7f;
 
-    [Header("Tracking Player")]
     [SerializeField]
     private float delayTrackingPlayerTime = 1f;
 
@@ -45,7 +44,7 @@ public class GolemBoss : MonoBehaviour
     [SerializeField]
     private float moveSpeed = 2f;
     [SerializeField]
-    private float patrolDelay;
+    private float patrolDelay; // time delay to patrol next .....
     [SerializeField]
     private Transform leftLimitPatrolPoint, rightLimitPatrolPoint;
 
@@ -79,7 +78,6 @@ public class GolemBoss : MonoBehaviour
     [SerializeField]
     private float chaseSpeed;
 
-    private new Rigidbody2D rigidbody2D;
     private Animator animator;
     private BoxCollider2D boxCollider2D;
 
@@ -97,7 +95,7 @@ public class GolemBoss : MonoBehaviour
     #region Draw Gizmo 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, viewRange);
 
         Gizmos.color = Color.yellow;
@@ -107,7 +105,6 @@ public class GolemBoss : MonoBehaviour
 
     void Start()
     {
-        rigidbody2D = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         boxCollider2D = GetComponent<BoxCollider2D>();
 
@@ -338,6 +335,7 @@ public class GolemBoss : MonoBehaviour
 
     private bool Move(Vector2 position, float moveSpeed)
     {
+        position.y = transform.position.y;
         if (Vector2.Distance((Vector2)transform.position, position) <= 0.2f) return true;
         Vector2 direction = (position - (Vector2)transform.position).normalized;
 
