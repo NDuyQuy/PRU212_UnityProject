@@ -30,10 +30,15 @@ public class BaseCharacterScript : MonoBehaviour
         StartCoroutine(InvincibilityCoroutine());
     }
 
-    protected virtual void Die()
+    protected virtual void Die(float delayTime=0)
     {
-        Destroy(gameObject);
+        StartCoroutine(DestroyAfterDelay(delayTime));
     }
+    private IEnumerator DestroyAfterDelay(float delayTime)
+    {
+        yield return new WaitForSeconds(delayTime);
+        Destroy(gameObject);
+    } 
 
     protected virtual void CheckHit()
     {
@@ -64,4 +69,9 @@ public class BaseCharacterScript : MonoBehaviour
         spriteRenderer.enabled = true;
     }
 
+    public void AddHearth(sbyte value)
+    {
+        currentHealth += value;
+        currentHealth = (sbyte)Mathf.Min(currentHealth+value, maxHealth);
+    }
 }
