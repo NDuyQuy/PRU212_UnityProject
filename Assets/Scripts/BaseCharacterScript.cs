@@ -25,7 +25,6 @@ public class BaseCharacterScript : MonoBehaviour
     {
         if(isInvincible) return;
         currentHealth -= dmg;
-        if(currentHealth <= 0) Die();
         CheckHit();
         StartCoroutine(InvincibilityCoroutine());
     }
