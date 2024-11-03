@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Linq;
 using Unity.VisualScripting;
@@ -49,7 +49,12 @@ public class PlayerControl : BaseCharacterScript
     #endregion
 
     private float _originalGravity;
-    
+
+    private BaseCharacterScript baseCharacterScript;
+    private Vector3 _originalPosition;
+    private float _outOfCameraTime = 1f; // Time to wait before returning
+    private Coroutine _returnCoroutine;
+
     public int Currency { get; set; } = 0;
 
     // Start is called before the first frame update
@@ -64,6 +69,9 @@ public class PlayerControl : BaseCharacterScript
         _arrowStart = transform.Find("ArrowPoint");
         _bgEffects = transform.Find("BgEffect").gameObject.GetComponent<Effect>();
         _bgEffects.Enable = false;
+        baseCharacterScript = GetComponent<BaseCharacterScript>();
+        _originalPosition = transform.position;
+
     }
 
     // Update is called once per frame
@@ -139,6 +147,40 @@ public class PlayerControl : BaseCharacterScript
         AirKick();
 
         DetectMovingPlatform();
+        CheckOutOfCameraBounds();
+    }
+    private void CheckOutOfCameraBounds()
+    {
+        if (IsOutOfCamera())
+        {
+            if (_returnCoroutine == null)
+            {
+                _returnCoroutine = StartCoroutine(ReturnToOriginalPosition());
+            }
+        }
+        else
+        {
+            if (_returnCoroutine != null)
+            {
+                StopCoroutine(_returnCoroutine);
+                _returnCoroutine = null;
+            }
+        }
+    }
+
+    private bool IsOutOfCamera()
+    {
+        Camera camera = Camera.main;
+        Vector3 screenPoint = camera.WorldToViewportPoint(transform.position);
+        return screenPoint.x < 0 || screenPoint.x > 1 || screenPoint.y < 0 || screenPoint.y > 1;
+    }
+
+    private IEnumerator ReturnToOriginalPosition()
+    {
+        yield return new WaitForSeconds(_outOfCameraTime);
+        baseCharacterScript.TakeDamage(30);
+        transform.position = _originalPosition; // Return to the original position
+        _returnCoroutine = null; // Reset the coroutine reference
     }
     void FixedUpdate()
     {
