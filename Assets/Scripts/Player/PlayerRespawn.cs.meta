@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Scripts/Trap/Spike Trap.cs.meta
+guid: 1e1e206260787944b83977d49ac186d7
+=======
+guid: 1642adede6b5ffb4d9590b1176983afd
+>>>>>>> new_map:Assets/Scripts/Player/PlayerRespawn.cs.meta
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
