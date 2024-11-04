@@ -105,7 +105,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4395000949703641146
 Transform:
   m_ObjectHideFlags: 0
@@ -296,7 +296,7 @@ MonoBehaviour:
   moveSpeed: 10
   attackSpeed: 30
   chargeDistance: 10
-  hoverHeight: 15
+  hoverHeight: 10
   damage: 10
   stuckDelay: 1
   attackDelay: 1

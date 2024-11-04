@@ -1,6 +1,5 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.U2D.IK;
 using UnityEngine.UI;
 
 #region Item Class
@@ -28,6 +27,7 @@ public class ItemsManager : MonoBehaviour
         new("super dashing",30,false,"hero turn into a fire and move super quickly")
     };
     public Sprite[] itemsSprites;
+    public TextMeshProUGUI currency;
     public GameObject player;
     private PlayerControl _playerScript;
     public Sprite[] btnSprites;
@@ -47,7 +47,7 @@ public class ItemsManager : MonoBehaviour
 
     private void UpdateItem()
     {
-
+        currency.text = $"Currency: {_playerScript.Currency}$";
         var desTxt = itemDescription.GetComponent<TextMeshProUGUI>();
         var nameTxt = itemName.GetComponent<TextMeshProUGUI>();
         var selectedItem = Items[selectedItemIdx];
@@ -90,6 +90,18 @@ public class ItemsManager : MonoBehaviour
         if (!_enoughMoney) return;
         Items[selectedItemIdx].IsUnlocked = true;
         _playerScript.Currency -= Items[selectedItemIdx].Price;
+        switch (selectedItemIdx)
+        {
+            case 0:
+                _playerScript.Weapon = true;
+                break;
+            case 1:
+                _playerScript.SideWeapon = true;
+                break;
+            case 2:
+                _playerScript.CanSuperDash = true;
+                break;
+        }
         UpdateItem();
     }
 

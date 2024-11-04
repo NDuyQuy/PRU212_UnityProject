@@ -60,6 +60,7 @@ public class CharmonyDove : BaseCharacterScript
     }
     private void Update()
     {
+        if(_player==null) return;
         if (IsDead && !_deadCalled)
         {
             Die();
@@ -89,6 +90,7 @@ public class CharmonyDove : BaseCharacterScript
 
     private void FixedUpdate()
     {
+        if(_player==null) return;
         if (_deadCalled) return;
         HandleMovement();
         PerformAttackMove();
@@ -204,7 +206,7 @@ public class CharmonyDove : BaseCharacterScript
         PlayAudio("angry");
         _isAttacking = true;
         rb2d.velocity = Vector2.up * attackSpeed;
-        yield return new WaitForSeconds(0.6f);
+        yield return new WaitForSeconds(0.3f);
         Vector2 chargeDirection = (Vector2)(_player.position - transform.position).normalized;
         rb2d.velocity = chargeDirection * attackSpeed;
     }
@@ -240,6 +242,7 @@ public class CharmonyDove : BaseCharacterScript
         switch (_currentState)
         {
             case DoveState.Angry:
+                rb2d.excludeLayers = LayerMask.GetMask("Player");
                 break;
             case DoveState.AngryWithGun:
                 Sprite angryDove = Resources.Load<Sprite>(SPRITES_PATH + DoveState.Angry.ToString().ToLower());
@@ -325,6 +328,8 @@ public class CharmonyDove : BaseCharacterScript
 
     private void HitPlayer()
     {
+        if (_currentState == DoveState.Normal)
+            return;
         Vector2 overlapCircleCenter = (Vector2)transform.position + _circleCollider2d.offset;
         float overlapRadius = _circleCollider2d.radius;
         Collider2D hitPlayer =

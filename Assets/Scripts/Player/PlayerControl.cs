@@ -52,10 +52,15 @@ public class PlayerControl : BaseCharacterScript
 
     public int Currency { get; set; } = 0;
 
+    private GameObject _shopMenu;
+    private bool ShopPressed => Input.GetKeyDown(KeyCode.P);
     // Start is called before the first frame update
     protected override void Start()
     {
         base.Start();
+        rb2d.velocity = Vector2.zero;
+        _shopMenu = transform.Find("ShopMenu").gameObject;
+        _shopMenu.SetActive(false);
         _animator = GetComponent<Animator>();
         _boxCol2d = GetComponent<BoxCollider2D>();
         _plCol2d = GetComponent<PolygonCollider2D>();
@@ -67,13 +72,17 @@ public class PlayerControl : BaseCharacterScript
     }
 
     // Update is called once per frame
+    private bool EscPressed => Input.GetKeyDown(KeyCode.Escape);
+    public SavePlayer escMenu;
     void Update()
     {
+        if (ShopPressed) _shopMenu.SetActive(true);
+        if (EscPressed) escMenu.gameObject.SetActive(true);
         if (gameObject == null) return;
-        if (IsDead)
+        if(_deadCalled) return;
+        if (IsDead && !_deadCalled)
         {
             Die();
-            return;
         }
 
         if (_isSuperDashing)
@@ -139,7 +148,7 @@ public class PlayerControl : BaseCharacterScript
 
         DetectMovingPlatform();
 
-        if(_airState==2)
+        if (_airState == 2)
             _fallTimeCounter += Time.deltaTime;
     }
     void FixedUpdate()
@@ -182,9 +191,9 @@ public class PlayerControl : BaseCharacterScript
     {
         if (onGround)
             _latedPosition = transform.position;
-        if(_fallTimeCounter > 7f)//if falling 7 sec
+        if (_fallTimeCounter > 7f)//if falling 7 sec
         {
-            _fallTimeCounter = 0 ;
+            _fallTimeCounter = 0;
             transform.position = _latedPosition;
         }
     }
@@ -265,8 +274,8 @@ public class PlayerControl : BaseCharacterScript
     #region attack
     private bool SideAttackPressed => Input.GetKeyDown(KeyCode.U);
     private bool MainAttackPressed => Input.GetKeyDown(KeyCode.J);
-    public bool Weapon = false;//weapon equiped(hand-sword)
-    public bool SideWeapon = false;//side weapon equiped(kick-bow)
+    public bool Weapon { get; set; } = false;//weapon equiped(hand-sword)
+    public bool SideWeapon { get; set; } = false;//side weapon equiped(kick-bow)
     private bool isAttackPressed;
     private bool _isAirShooting;
     private bool _isSideAttackPressed;
@@ -416,7 +425,7 @@ public class PlayerControl : BaseCharacterScript
     [SerializeField] private float _dashInterval = 0.3f;
     [SerializeField] private float _dashCooldown = 2f;
     private bool _canAirDash = false;
-    [SerializeField] private bool _canSuperDash = false;
+    public bool CanSuperDash { get; set; } = false;
     [SerializeField] private float _superDashVel = 10f;//super dash velocity
     [SerializeField] private float _dashingPower = 3f;
     private readonly float _superDashCpltInterval = 1.0f;//1.0 sec to complete dash
@@ -455,7 +464,7 @@ public class PlayerControl : BaseCharacterScript
 
     private void PerformDash()
     {
-        if (!_canSuperDash)
+        if (!CanSuperDash)
         {
             if (canDash) StartCoroutine(Dash());
             else return;
@@ -536,6 +545,8 @@ public class PlayerControl : BaseCharacterScript
             isJumpPressed = false;
             if (onGround || _airJumpCount < _maxAirJump)
             {
+                _airState = 1;
+                _fallTimeCounter = 0;
                 _airJumpCount++;
                 vel.y = jumpHeight;
                 ChangeAnimationState(onGround ? nameof(PlayerAnimation.Jump) : nameof(PlayerAnimation.WallJump));
@@ -607,8 +618,10 @@ public class PlayerControl : BaseCharacterScript
     }
     #endregion
     #region Die
+    private bool _deadCalled;
     protected override void Die(float delayTime = 0)
     {
+        _deadCalled = true;
         float animationLength = _animator.runtimeAnimatorController
                                 .animationClips
                                 .FirstOrDefault(c => c.name == nameof(PlayerAnimation.Die)).length;
