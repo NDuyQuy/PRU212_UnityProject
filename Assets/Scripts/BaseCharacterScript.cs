@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class BaseCharacterScript : MonoBehaviour
@@ -13,6 +13,8 @@ public class BaseCharacterScript : MonoBehaviour
     protected Rigidbody2D rb2d;
     protected SpriteRenderer spriteRenderer;
     [SerializeField]protected Vector2 boxSize;
+    private Animator anim;
+
     // Start is called before the first frame update
     protected virtual void Start()
     {
@@ -20,6 +22,7 @@ public class BaseCharacterScript : MonoBehaviour
         currentHealth = maxHealth;
         rb2d = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        anim = GetComponent<Animator>();
     }
     public void TakeDamage(sbyte dmg)
     {
@@ -32,7 +35,17 @@ public class BaseCharacterScript : MonoBehaviour
 
     protected virtual void Die(float delayTime=0)
     {
-        StartCoroutine(DestroyAfterDelay(delayTime));
+        // Tìm đối tượng PlayerRespawn để gọi RespawnCheck
+        PlayerRespawn respawn = GetComponent<PlayerRespawn>();
+        if (respawn != null)
+        {
+            respawn.RespawnCheck();
+        }
+        else
+        {
+            // Nếu không có checkpoint, thì mới gọi Destroy
+            StartCoroutine(DestroyAfterDelay(0));
+        }
     }
     private IEnumerator DestroyAfterDelay(float delayTime)
     {
@@ -72,6 +85,15 @@ public class BaseCharacterScript : MonoBehaviour
     public void AddHearth(sbyte value)
     {
         currentHealth += value;
-        currentHealth = (sbyte)Mathf.Min(currentHealth+value, maxHealth);
+        currentHealth = (sbyte)Mathf.Min(currentHealth, maxHealth);
+
+    }
+
+    public void Respawn()
+    {
+        AddHearth(maxHealth);
+        anim.ResetTrigger("die");
+        anim.Play("Idle");
+       StartCoroutine(InvincibilityCoroutine());
     }
 }

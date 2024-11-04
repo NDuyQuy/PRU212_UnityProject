@@ -9,11 +9,18 @@ public class CameraControl : MonoBehaviour
     private float smoothTime = 0.25f;
     private Vector3 velocity = Vector3.zero;
     [SerializeField] private Transform target;
+    private float currentPosX;
 
     void Update()
     {
         if(target==null) return;
         Vector3 targetPosition = target.position+offset;
         transform.position = Vector3.SmoothDamp(transform.position,targetPosition,ref velocity, smoothTime);
+    }
+
+    public void MoveToNewRoom(Transform _newRoom)
+    {
+        print("here");
+        currentPosX = _newRoom.position.x;
     }
 }
