@@ -11,9 +11,8 @@ public class DoveProjectile : MonoBehaviour
     private void Awake()
     {
         _rb2d = GetComponent<Rigidbody2D>();
-        _animator = GetComponent<Animator>();
-
-        _animator.Play(AnimationStr);
+        TryGetComponent<Animator>(out _animator);
+        if (_animator != null) _animator.Play(AnimationStr);
     }
 
     public void MoveProjectile(bool rightDirection)
@@ -22,14 +21,14 @@ public class DoveProjectile : MonoBehaviour
             Vector2.right * _projectileSpeed :
             Vector2.left * _projectileSpeed;
     }
-    private void Update()
+    virtual protected void Update()
     {
         _timeCounter += Time.deltaTime;
         if (_timeCounter > _destroyTime)
             Destroy(gameObject);
     }
 
-    private void OnCollisionEnter2D(Collision2D collision2D)
+    virtual protected void OnCollisionEnter2D(Collision2D collision2D)
     {
         var collisionObject = collision2D.gameObject;
         if (collision2D.transform.CompareTag("Player"))

@@ -14,6 +14,7 @@ public class CharmonyDove : BaseCharacterScript
 
     public GameObject Bullet;
     public GameObject Wave;
+    public GameObject Ball;
     private Transform _gunPoint;
 
     private bool _hittedOnce;
@@ -163,7 +164,7 @@ public class CharmonyDove : BaseCharacterScript
         if (!(_attackTimeCounter > attackDelay))
             return;
         _attackTimeCounter = 0;
-        int range = (_currentState == DoveState.Angry) ? 2 : 3;
+        int range = (_currentState == DoveState.Angry) ? 3 : 4;
         _attackType++;
         if (_attackType >= range)
             _attackType = 0;
@@ -176,6 +177,9 @@ public class CharmonyDove : BaseCharacterScript
                 StartCoroutine(DiveAttack());
                 break;
             case 2:
+                StartCoroutine(CreateBall());
+                break;
+            case 3:
                 StartCoroutine(ShootProjectile());
                 break;
             default: break;
@@ -271,6 +275,25 @@ public class CharmonyDove : BaseCharacterScript
         Vector2 theScale = transform.localScale;
         theScale.x *= -1;
         transform.localScale = theScale;
+    }
+
+    private IEnumerator CreateBall()
+    {
+        _isAttacking = true;
+        Instantiate(Ball, transform.position + (Vector3)Vector2.right * 10
+                                , Quaternion.identity, transform);
+        yield return new WaitForSeconds(0.2f);
+        Instantiate(Ball, transform.position + (Vector3)Vector2.left * 10
+                                , Quaternion.identity, transform);
+        yield return new WaitForSeconds(0.2f);
+        Instantiate(Ball, transform.position + (Vector3)Vector2.up * 10
+                                , Quaternion.identity, transform);
+        yield return new WaitForSeconds(0.2f);
+        Instantiate(Ball, transform.position + (Vector3)Vector2.down * 10
+                                , Quaternion.identity, transform);
+
+        _isAttacking = false;
+
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {

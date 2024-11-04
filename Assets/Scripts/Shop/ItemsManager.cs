@@ -39,6 +39,7 @@ public class ItemsManager : MonoBehaviour
     private bool _enoughMoney;
     private void Awake()
     {
+        player = GameObject.FindGameObjectWithTag("Player");
         _playerScript = player.GetComponent<PlayerControl>();
         selectedItemIdx = 0;
         UpdateItem();
@@ -86,12 +87,13 @@ public class ItemsManager : MonoBehaviour
 
     public void Buy_Click()
     {
-        if(!_enoughMoney) return;
+        if (!_enoughMoney) return;
         Items[selectedItemIdx].IsUnlocked = true;
         _playerScript.Currency -= Items[selectedItemIdx].Price;
         UpdateItem();
-
     }
+
+    // public void CloseClick() => this.gameObject.SetActive(false);
 }
 
 

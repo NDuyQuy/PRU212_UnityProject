@@ -116,7 +116,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 28.6, y: 16.5, z: 0}
-  m_LocalScale: {x: -1.5, y: 1.5, z: 1}
+  m_LocalScale: {x: -1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3370198642577815756}
@@ -188,7 +188,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 1
-  m_Mass: 21.493639
+  m_Mass: 9.552729
   m_LinearDrag: 0
   m_AngularDrag: 0.05
   m_GravityScale: 0
@@ -291,6 +291,8 @@ MonoBehaviour:
   blinkInterval: 0.1
   boxSize: {x: 0, y: 0}
   Bullet: {fileID: 3319431301691503515, guid: ee3ebf2f82775fe4fbadf5b42806328b, type: 3}
+  Wave: {fileID: 1171741862991830501, guid: c3efa01fca02b1a4eb10e952e3473a22, type: 3}
+  Ball: {fileID: 8631959674646463253, guid: adf6472ef76908f4585ea7b1d1be3417, type: 3}
   moveSpeed: 10
   attackSpeed: 30
   chargeDistance: 10
