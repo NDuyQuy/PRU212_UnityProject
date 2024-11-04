@@ -5,7 +5,7 @@ public class BaseCharacterScript : MonoBehaviour
 {
     public sbyte maxHealth = 100;
     public sbyte currentHealth;
-
+    public ThanhMau thanhMau; 
     private bool isInvincible;
     public float invincibilityDuration = 5f;
     public float blinkInterval = 0.1f;
@@ -23,12 +23,15 @@ public class BaseCharacterScript : MonoBehaviour
         rb2d = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
+        thanhMau.UpdateHealthUI(currentHealth, maxHealth);
     }
     public void TakeDamage(sbyte dmg)
     {
         if(isInvincible) return;
         currentHealth -= dmg;
-        if(currentHealth <= 0) Die();
+        currentHealth = (sbyte)Mathf.Max(0, currentHealth);
+        thanhMau.UpdateHealthUI(currentHealth, maxHealth);
+        if (currentHealth <= 0) Die();
         CheckHit();
         StartCoroutine(InvincibilityCoroutine());
     }
@@ -86,7 +89,7 @@ public class BaseCharacterScript : MonoBehaviour
     {
         currentHealth += value;
         currentHealth = (sbyte)Mathf.Min(currentHealth, maxHealth);
-
+        thanhMau.UpdateHealthUI(currentHealth, maxHealth);
     }
 
     public void Respawn()
