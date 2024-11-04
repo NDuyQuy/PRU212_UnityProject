@@ -16,8 +16,8 @@ namespace UI
         {
             characterScript.OnHealthUpdate += BaseCharacterScript_OnHealthUpdate;
             characterScript.OnFlip += BaseCharacterScript_OnFlip;
-            barImage.fillAmount = 0;
-            Hide();
+            barImage.fillAmount = 1;
+            Show();
         }
 
         private void BaseCharacterScript_OnFlip()
@@ -31,7 +31,7 @@ namespace UI
         {
             barImage.fillAmount = e.HealthPersent;
 
-            if (e.HealthPersent == 0 || e.HealthPersent == 1)
+            if (e.HealthPersent == 0)
             {
                 Hide();
             }

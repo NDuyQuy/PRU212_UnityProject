@@ -22,17 +22,17 @@ AnimationClip:
     curve:
     - time: 0
       value: {fileID: -1339599457, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
-    - time: 0.13333334
+    - time: 0.21666667
       value: {fileID: -1004360554, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
-    - time: 0.26666668
+    - time: 0.43333334
       value: {fileID: 1077453485, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
-    - time: 0.41666666
+    - time: 0.6666667
       value: {fileID: 608884234, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
-    - time: 0.56666666
+    - time: 0.9
       value: {fileID: -1455467009, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
-    - time: 0.7
+    - time: 1.1166667
       value: {fileID: -612919546, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
-    - time: 0.8333333
+    - time: 1.3333334
       value: {fileID: -1791737191, guid: cb9f73aeeab0a6844b0ed2f797443a58, type: 3}
     attribute: m_Sprite
     path: 
@@ -68,7 +68,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.84999996
+    m_StopTime: 1.35
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -88,7 +88,7 @@ AnimationClip:
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
   m_Events:
-  - time: 0.73333335
+  - time: 1.1666666
     functionName: SpawnLazor
     data: 
     objectReferenceParameter: {fileID: 0}

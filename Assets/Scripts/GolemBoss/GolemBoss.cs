@@ -88,6 +88,7 @@ public class GolemBoss : BaseCharacterScript
     private bool isLazorAttacking;
     private bool isRangeAttacking;
     private BaseCharacterScript playerBaseScripts;
+    private BossLazor lazorSpawn;
 
     #region Draw Gizmo 
     private void OnDrawGizmosSelected()
@@ -293,8 +294,8 @@ public class GolemBoss : BaseCharacterScript
 
     public void SpawnLazor()
     {
-        BossLazor bossLazor = Instantiate(lazerPrefab, spawnLazerPoint.position, Quaternion.identity);
-        bossLazor.StartShoot(this, lazorShootingTime);
+        lazorSpawn = Instantiate(lazerPrefab, spawnLazerPoint.position, Quaternion.identity);
+        lazorSpawn.StartShoot(this, lazorShootingTime);
     }
 
     public void EndLazorAttack()
@@ -366,5 +367,12 @@ public class GolemBoss : BaseCharacterScript
         Vector3 localScale = transform.localScale;
         localScale.x *= -1; 
         transform.localScale = localScale;
+        OnFlip?.Invoke();
+    }
+
+    protected override void Die(float delayTime = 0)
+    {
+        if(lazorSpawn != null) Destroy(lazorSpawn);
+        base.Die(delayTime);
     }
 }

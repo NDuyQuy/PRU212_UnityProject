@@ -44,7 +44,7 @@ GameObject:
   - component: {fileID: 7558332546739287411}
   - component: {fileID: 9074681431166909543}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: HealthBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -237,7 +237,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.17, y: -1.87, z: 0}
-  m_LocalScale: {x: 10, y: 9.761812, z: 4.880906}
+  m_LocalScale: {x: 9, y: 8.785631, z: 4.3928156}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 5012651149272757838}
@@ -325,7 +325,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: -0.0056066513, y: -0.053523608}
@@ -401,7 +401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f1279b5ffadc1499e6d3b8a82c9699, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 20
+  maxHealth: 50
   currentHealth: 0
   invincibilityDuration: 1
   blinkInterval: 0.1
@@ -417,6 +417,7 @@ MonoBehaviour:
   meleeRange: 1.5
   meleePoint: {fileID: 2439560948753485623}
   coinPrefab: {fileID: 5921346802880895561, guid: 265f213ee6062274da41441ac88a1e96, type: 3}
+  coinValue: 5
 --- !u!1 &9096196799164027754
 GameObject:
   m_ObjectHideFlags: 0

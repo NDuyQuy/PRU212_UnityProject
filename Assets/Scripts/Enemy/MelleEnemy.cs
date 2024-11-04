@@ -26,6 +26,9 @@ public class MelleEnemy : BaseCharacterScript
     [SerializeField]
     private Coins coinPrefab;
 
+    [SerializeField]
+    private Coins.CoinsValue coinValue;
+
     private Animator animator;
     private bool movingRight = true;
     private bool isSeePlayer = false;
@@ -145,6 +148,7 @@ public class MelleEnemy : BaseCharacterScript
     protected override void Die(float delayTime = 0)
     {
         Coins coin = Instantiate(coinPrefab, transform.position, Quaternion.identity);
+        coin.SetCoinValue(coinValue);
         base.Die(delayTime);
     }
 }

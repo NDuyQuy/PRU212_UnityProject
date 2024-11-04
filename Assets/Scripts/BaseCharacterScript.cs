@@ -14,6 +14,7 @@ public class BaseCharacterScript : MonoBehaviour
     protected Rigidbody2D rb2d;
     protected SpriteRenderer spriteRenderer;
 
+    // hung add event
     public EventHandler<HeathUpdateEventArgs> OnHealthUpdate;
     public Action OnFlip;
 
@@ -35,7 +36,8 @@ public class BaseCharacterScript : MonoBehaviour
     {
         if(isInvincible) return;
         currentHealth -= dmg;
-
+        
+        // hung update hp
         OnHealthUpdate?.Invoke(this, new HeathUpdateEventArgs
         {
             HealthPersent = (float)currentHealth/maxHealth
