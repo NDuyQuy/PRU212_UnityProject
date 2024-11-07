@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Prefabs/Boss/Bullet.prefab.meta
+guid: 43f3cc71d58a8ae4a9fe49062ac5c726
+========
 guid: d33daf779e71bf54dbf495d85c0de2d0
+>>>>>>>> new_map:Assets/Prefabs/Falling Platform.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

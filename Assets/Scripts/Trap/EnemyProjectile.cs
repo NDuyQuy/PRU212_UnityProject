@@ -20,10 +20,9 @@ public class EnemyProjectile : BaseTrap
         if (lifetime > resetTime)
             gameObject.SetActive(false);
     }
-
-    override protected void OnCollisionEnter2D(Collision2D collision)
+    protected override void OnTriggerEnter2D(Collider2D collision)
     {
-        base.OnCollisionEnter2D(collision);
-        gameObject.SetActive(false);
+        base.OnTriggerEnter2D(collision); //Execute logic from parent script first
+        gameObject.SetActive(false); //When this hits any object deactivate arrow
     }
 }

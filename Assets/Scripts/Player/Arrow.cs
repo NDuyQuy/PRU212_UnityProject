@@ -8,8 +8,7 @@ public class Arrow : MonoBehaviour
     {
         Explosion,
         SelfMultiply,
-        SuperKnockback,
-        FollowEnemy
+        SuperKnockback
     }
     public bool HasEffect = false;
     [SerializeField] private GameObject arrowPrefab;
@@ -86,8 +85,6 @@ public class Arrow : MonoBehaviour
     }
     public void Shoot(float xDirection = 1)
     {
-        if (HasEffect && CurrentEffect == Effects.FollowEnemy)
-            return;
         if (HasEffect && CurrentEffect == Effects.SelfMultiply)
         {
             ShootWithDelay(xDirection);

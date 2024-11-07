@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Animations/Projectile.meta
+guid: b257b7ddc1a68aa4ca4bd8ca690ef67b
+========
 guid: a40d4384b001cc8459c3f8ec703001bd
+>>>>>>>> new_map:Assets/Animations/Checkpoint.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
