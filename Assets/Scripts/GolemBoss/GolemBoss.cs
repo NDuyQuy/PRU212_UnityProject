@@ -1,15 +1,15 @@
 using UnityEngine;
 
-public class GolemBoss : MonoBehaviour
+public class GolemBoss : BaseCharacterScript
 {
     private enum State
     {
         Death,
-        Chase,
-        Patrol,
-        AttackLazor,
-        AttackMelee,
-        AttackRange
+        Chase, // đuổi theo
+        Patrol, // đi tuần
+        AttackLazor, 
+        AttackMelee, // cận chiến
+        AttackRange // bắn đạn
     }
 
     private enum AnimatorParametor
@@ -28,7 +28,6 @@ public class GolemBoss : MonoBehaviour
     [SerializeField]
     private float viewRange = 7f;
 
-    [Header("Tracking Player")]
     [SerializeField]
     private float delayTrackingPlayerTime = 1f;
 
@@ -36,14 +35,11 @@ public class GolemBoss : MonoBehaviour
     private LayerMask playerLayerMask;
 
     [Space]
-    [SerializeField]
-    private float delayCastSkillTime = 3f;
-
     [Header("Patrol")]
     [SerializeField]
     private float moveSpeed = 2f;
     [SerializeField]
-    private float patrolDelay;
+    private float patrolDelay; // time delay to patrol next .....
     [SerializeField]
     private Transform leftLimitPatrolPoint, rightLimitPatrolPoint;
 
@@ -77,12 +73,10 @@ public class GolemBoss : MonoBehaviour
     [SerializeField]
     private float chaseSpeed;
 
-    private new Rigidbody2D rigidbody2D;
     private Animator animator;
     private BoxCollider2D boxCollider2D;
 
     private float trackingPlayerTimer;
-    private float delayCastSkillTimer;
     private float lazorShootTimer;
     private bool isSeePlayer = false;
     private Vector2 targetMovePosition;
@@ -91,11 +85,13 @@ public class GolemBoss : MonoBehaviour
     private bool isMeleeAttacking;
     private bool isLazorAttacking;
     private bool isRangeAttacking;
+    private BaseCharacterScript playerBaseScripts;
+    private BossLazor lazorSpawn;
 
     #region Draw Gizmo 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, viewRange);
 
         Gizmos.color = Color.yellow;
@@ -103,9 +99,9 @@ public class GolemBoss : MonoBehaviour
     }
     #endregion 
 
-    void Start()
+    protected override void Start()
     {
-        rigidbody2D = GetComponent<Rigidbody2D>();
+        base.Start();
         animator = GetComponent<Animator>();
         boxCollider2D = GetComponent<BoxCollider2D>();
 
@@ -146,6 +142,10 @@ public class GolemBoss : MonoBehaviour
 
             if (isSeePlayer)
             {
+                if (playerBaseScripts == null)
+                {
+                    playerBaseScripts = hit.GetComponent<BaseCharacterScript>();
+                }
                 attackMeleePosition = GetAttackMeleePosition(hit);
                 //Debug.Log("See player: " + isSeePlayer);
             }
@@ -171,8 +171,7 @@ public class GolemBoss : MonoBehaviour
 
     private void HandleSwitchSkill()
     {
-        delayCastSkillTimer += Time.fixedDeltaTime;
-        if (delayCastSkillTimer >= delayCastSkillTime && state == State.Patrol)
+        if (state == State.Patrol)
         {
             int randomSkill = UnityEngine.Random.Range(0, 3);
             if (randomSkill == 0)
@@ -180,10 +179,15 @@ public class GolemBoss : MonoBehaviour
                 ChangeState(State.AttackMelee);
                 animator.SetBool(AnimatorParametor.IsWalk.ToString(), true);
             }
-            if (randomSkill == 1) {
+            else if (randomSkill == 1)
+            {
                 ChangeState(State.AttackLazor);
             }
-            if (randomSkill == 2) ChangeState(State.AttackRange);
+            else if (randomSkill == 2)
+            {
+                ChangeState(State.AttackRange);
+            }
+
             Debug.Log("Cast skill: " + state.ToString());
         }
     }
@@ -268,7 +272,6 @@ public class GolemBoss : MonoBehaviour
 
     private void CombackToPatrol()
     {
-        delayCastSkillTime = 0;
         ChangeState(State.Patrol);
         animator.SetBool(AnimatorParametor.IsWalk.ToString(), false);
     }
@@ -277,6 +280,7 @@ public class GolemBoss : MonoBehaviour
     private void HandleAttackLazor()
     {
         if (isLazorAttacking) return;
+        transform.position = attackMeleePosition;
         Vector2 shootDirection = attackMeleePosition - (Vector2)transform.position;
         if ((shootDirection.x < 0 && transform.localScale.x > 0) || (shootDirection.x > 0 && transform.localScale.x < 0))
         {
@@ -288,13 +292,14 @@ public class GolemBoss : MonoBehaviour
 
     public void SpawnLazor()
     {
-        BossLazor bossLazor = Instantiate(lazerPrefab, spawnLazerPoint.position, Quaternion.identity);
-        bossLazor.StartShoot(this, lazorShootingTime);
+        lazorSpawn = Instantiate(lazerPrefab, spawnLazerPoint.position, Quaternion.identity);
+        lazorSpawn.StartShoot(this, lazorShootingTime);
     }
 
     public void EndLazorAttack()
     {
         isLazorAttacking = false;
+        if(animator == null) return;
         animator.SetTrigger(AnimatorParametor.AttackLazerEndTrigger.ToString());
         CombackToPatrol();
     }
@@ -331,11 +336,14 @@ public class GolemBoss : MonoBehaviour
 
     public void DeductHealthPlayer(int damage) // Need to add Player Health Component
     {
+        if(playerBaseScripts == null) return;
+        playerBaseScripts.TakeDamage((sbyte)damage);
         Debug.Log("Deduct Health Player: " +  damage);
     }
 
     private bool Move(Vector2 position, float moveSpeed)
     {
+        //position.y = transform.position.y;
         if (Vector2.Distance((Vector2)transform.position, position) <= 0.2f) return true;
         Vector2 direction = (position - (Vector2)transform.position).normalized;
 
@@ -357,5 +365,12 @@ public class GolemBoss : MonoBehaviour
         Vector3 localScale = transform.localScale;
         localScale.x *= -1; 
         transform.localScale = localScale;
+        OnFlip?.Invoke();
+    }
+
+    protected override void Die(float delayTime = 0)
+    {
+        if(lazorSpawn != null) Destroy(lazorSpawn);
+        base.Die(delayTime);
     }
 }
