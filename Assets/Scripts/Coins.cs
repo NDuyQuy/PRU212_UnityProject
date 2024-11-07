@@ -14,11 +14,17 @@ public class Coins : MonoBehaviour
     private Animator _animator;
     private AudioSource _audio;
     private SpriteRenderer _spriteRenderer;
+    private Rigidbody2D _rb2d;
     private void Awake()
     {
         _animator = GetComponent<Animator>();
         _audio = GetComponent<AudioSource>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+<<<<<<< HEAD
+=======
+        _rb2d = GetComponent<Rigidbody2D>();
+        StartAnimation();
+>>>>>>> main
     }
 
     private void OnCollisionEnter2D(Collision2D collision2D)
@@ -30,6 +36,7 @@ public class Coins : MonoBehaviour
             Debug.Log($"Current Coin: {_currentCoin.ToString()} =" + _currentCoin);
             _spriteRenderer.enabled = false;
             _audio.Play();
+            _rb2d.excludeLayers = LayerMask.GetMask("Player");
             StartCoroutine(DestroyOvertime(1f));
         }
     }

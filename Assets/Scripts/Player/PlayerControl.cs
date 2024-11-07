@@ -49,13 +49,18 @@ public class PlayerControl : BaseCharacterScript
     #endregion
 
     private float _originalGravity;
-    
+
     public int Currency { get; set; } = 0;
 
+    private GameObject _shopMenu;
+    private bool ShopPressed => Input.GetKeyDown(KeyCode.P);
     // Start is called before the first frame update
     protected override void Start()
     {
         base.Start();
+        rb2d.velocity = Vector2.zero;
+        _shopMenu = transform.Find("ShopMenu").gameObject;
+        _shopMenu.SetActive(false);
         _animator = GetComponent<Animator>();
         _boxCol2d = GetComponent<BoxCollider2D>();
         _plCol2d = GetComponent<PolygonCollider2D>();
@@ -67,13 +72,17 @@ public class PlayerControl : BaseCharacterScript
     }
 
     // Update is called once per frame
+    private bool EscPressed => Input.GetKeyDown(KeyCode.Escape);
+    public SavePlayer escMenu;
     void Update()
     {
+        if (ShopPressed) _shopMenu.SetActive(true);
+        if (EscPressed) escMenu.gameObject.SetActive(true);
         if (gameObject == null) return;
-        if (IsDead)
+        if(_deadCalled) return;
+        if (IsDead && !_deadCalled)
         {
             Die();
-            return;
         }
 
         if (_isSuperDashing)
@@ -81,12 +90,11 @@ public class PlayerControl : BaseCharacterScript
             if (AnyKeyPressed) StopSuperDash();
             return;
         }
-
         if (isWallJumping) return;
         if (isDash) return;
 
         IsGrounded();
-        if (grounded)
+        if (onGround)
         {
             _airJumpCount = 0;
             _airState = 0;
@@ -98,7 +106,7 @@ public class PlayerControl : BaseCharacterScript
         {
             _airState = 1;
         }
-        else if (rb2d.velocity.y < 0 && !isWallSliding && !grounded)
+        else if (rb2d.velocity.y < 0 && !isWallSliding && !onGround)
         {
             _airState = 2;
         }
@@ -139,6 +147,9 @@ public class PlayerControl : BaseCharacterScript
         AirKick();
 
         DetectMovingPlatform();
+
+        if (_airState == 2)
+            _fallTimeCounter += Time.deltaTime;
     }
     void FixedUpdate()
     {
@@ -168,9 +179,22 @@ public class PlayerControl : BaseCharacterScript
         SideAttackAction();
 
         //asign platform velocity to the palyer rigid body
-        if(_platformRb2d!=null)
+        if (_platformRb2d != null)
         {
             rb2d.velocity += _platformRb2d.velocity;
+        }
+    }
+
+    private Vector3 _latedPosition;
+    private float _fallTimeCounter;
+    void LateUpdate()
+    {
+        if (onGround)
+            _latedPosition = transform.position;
+        if (_fallTimeCounter > 7f)//if falling 7 sec
+        {
+            _fallTimeCounter = 0;
+            transform.position = _latedPosition;
         }
     }
     #region  wall jump and slide
@@ -188,7 +212,7 @@ public class PlayerControl : BaseCharacterScript
     private bool IsOnWall()
     {
         var hit = Physics2D.OverlapCircle(wallCheck.position, wallDistance, wallLayer);
-        return hit && !grounded;
+        return hit && !onGround;
     }
     private void WallSlide()
     {
@@ -250,8 +274,8 @@ public class PlayerControl : BaseCharacterScript
     #region attack
     private bool SideAttackPressed => Input.GetKeyDown(KeyCode.U);
     private bool MainAttackPressed => Input.GetKeyDown(KeyCode.J);
-    public bool Weapon = false;//weapon equiped(hand-sword)
-    public bool SideWeapon = false;//side weapon equiped(kick-bow)
+    public bool Weapon { get; set; } = false;//weapon equiped(hand-sword)
+    public bool SideWeapon { get; set; } = false;//side weapon equiped(kick-bow)
     private bool isAttackPressed;
     private bool _isAirShooting;
     private bool _isSideAttackPressed;
@@ -279,7 +303,7 @@ public class PlayerControl : BaseCharacterScript
                 isAttacking = true;
                 _attackCount++;
                 _attackCount = (sbyte)((_attackCount > 3) ? 1 : _attackCount);//hand attack only has 3 step 
-                if (grounded)
+                if (onGround)
                 {
                     //Weapon = true -> has sword
                     string attackAnimation = (Weapon ? "SAttack" : "Attack") + _attackCount.ToString();
@@ -324,11 +348,11 @@ public class PlayerControl : BaseCharacterScript
                     }
 
                     _currentArrow = Instantiate(_arrow, _arrowStart.position, Quaternion.identity);
-                    ChangeAnimationState(grounded ?
+                    ChangeAnimationState(onGround ?
                                         nameof(PlayerAnimation.Archery) :
                                         nameof(PlayerAnimation.AirArchery));
                     PlayAudio(Audios.arrow);
-                    _isAirShooting = !grounded;
+                    _isAirShooting = !onGround;
                     if (_isAirShooting)
                     {
                         _originalGravity = rb2d.gravityScale;
@@ -401,7 +425,7 @@ public class PlayerControl : BaseCharacterScript
     [SerializeField] private float _dashInterval = 0.3f;
     [SerializeField] private float _dashCooldown = 2f;
     private bool _canAirDash = false;
-    [SerializeField] private bool _canSuperDash = false;
+    public bool CanSuperDash { get; set; } = false;
     [SerializeField] private float _superDashVel = 10f;//super dash velocity
     [SerializeField] private float _dashingPower = 3f;
     private readonly float _superDashCpltInterval = 1.0f;//1.0 sec to complete dash
@@ -412,7 +436,7 @@ public class PlayerControl : BaseCharacterScript
     private IEnumerator Dash()
     {
         //allow player only dash when on ground or air dash avaiable
-        if (grounded || _canAirDash)
+        if (onGround || _canAirDash)
         {
             canDash = false;
             isDash = true;
@@ -421,7 +445,7 @@ public class PlayerControl : BaseCharacterScript
             rb2d.velocity = new Vector2(transform.localScale.x * _dashingPower, 0f);
             PlayAudio(Audios.dash);
             _boxCol2d.enabled = false;
-            if (grounded)
+            if (onGround)
                 ChangeAnimationState(nameof(PlayerAnimation.Slide));
             else ChangeAnimationState("");
 
@@ -440,7 +464,7 @@ public class PlayerControl : BaseCharacterScript
 
     private void PerformDash()
     {
-        if (!_canSuperDash)
+        if (!CanSuperDash)
         {
             if (canDash) StartCoroutine(Dash());
             else return;
@@ -496,7 +520,7 @@ public class PlayerControl : BaseCharacterScript
     private bool isJumpPressed;
     public float groundCastDistance = 1.3f;
     public float ceilingCastDistance = 1.0f;
-    private bool grounded;
+    private bool onGround;
     [SerializeField, Range(0, 5)] private byte _maxAirJump = 1;
     private byte _airJumpCount;
     [SerializeField] private float jumpHeight = 15f;//height of the jump
@@ -519,11 +543,13 @@ public class PlayerControl : BaseCharacterScript
         if (isJumpPressed)
         {
             isJumpPressed = false;
-            if (grounded || _airJumpCount < _maxAirJump)
+            if (onGround || _airJumpCount < _maxAirJump)
             {
+                _airState = 1;
+                _fallTimeCounter = 0;
                 _airJumpCount++;
                 vel.y = jumpHeight;
-                ChangeAnimationState(grounded ? nameof(PlayerAnimation.Jump) : nameof(PlayerAnimation.WallJump));
+                ChangeAnimationState(onGround ? nameof(PlayerAnimation.Jump) : nameof(PlayerAnimation.WallJump));
             }
         }
         return vel;
@@ -541,8 +567,8 @@ public class PlayerControl : BaseCharacterScript
         => Physics2D.BoxCast(transform.position, boxSize, 0, transform.up, ceilingCastDistance, groundLayer);
     public bool IsGrounded()
     {
-        grounded = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, groundCastDistance, groundLayer);
-        return grounded;
+        onGround = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, groundCastDistance, groundLayer);
+        return onGround;
     }
 
     #endregion
@@ -554,7 +580,7 @@ public class PlayerControl : BaseCharacterScript
         {
             ChangeAnimationState(nameof(PlayerAnimation.WallSlide));
         }
-        if (grounded && !isAttacking && !isDash)
+        if (onGround && !isAttacking && !isDash)
         {
             if (xAxis != 0)
             {
@@ -592,8 +618,10 @@ public class PlayerControl : BaseCharacterScript
     }
     #endregion
     #region Die
+    private bool _deadCalled;
     protected override void Die(float delayTime = 0)
     {
+        _deadCalled = true;
         float animationLength = _animator.runtimeAnimatorController
                                 .animationClips
                                 .FirstOrDefault(c => c.name == nameof(PlayerAnimation.Die)).length;
@@ -629,10 +657,10 @@ public class PlayerControl : BaseCharacterScript
     private Rigidbody2D _platformRb2d;
     private void DetectMovingPlatform()
     {
-        if(grounded)
+        if (onGround)
         {
             var detection = Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, groundCastDistance, groundLayer);
-            if(detection.collider.CompareTag("MovingPlatform"))
+            if (detection.collider.CompareTag("MovingPlatform"))
             {
                 _platformRb2d = detection.collider.GetComponent<Rigidbody2D>();
             }
