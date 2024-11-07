@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SawTrap : MonoBehaviour
+public class SawTrap : BaseTrap
 {
     [SerializeField] private float movementDistance;
     [SerializeField] private float movementSpeed;
@@ -10,7 +10,6 @@ public class SawTrap : MonoBehaviour
     private bool movingLeft;
     private float leftEdge;
     private float rightEdge;
-    [SerializeField] private sbyte damage;
     private void Awake()
     {
         leftEdge = transform
@@ -47,16 +46,6 @@ public class SawTrap : MonoBehaviour
                 Vector2 theScale = transform.localScale;
                 theScale.x *= -1;
                 transform.localScale = theScale;
-        }
-    }
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.CompareTag("Player"))
-        {
-            var player = collision.gameObject.GetComponent<BaseCharacterScript>();
-        //    var playerRB2d = collision.gameObject.GetComponent<Rigidbody2D>();
-            //Give damage for the player character when it hit this trap
-            player.TakeDamage(damage);
         }
     }
 }
