@@ -9,8 +9,8 @@ public class Coins : MonoBehaviour
         Silver = 20
     }
 
-    private CoinsValue _currentCoin = CoinsValue.Gold;
-    
+    [SerializeField] private CoinsValue _currentCoin = CoinsValue.Gold;
+
     private Animator _animator;
     private AudioSource _audio;
     private SpriteRenderer _spriteRenderer;
@@ -20,11 +20,8 @@ public class Coins : MonoBehaviour
         _animator = GetComponent<Animator>();
         _audio = GetComponent<AudioSource>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
-<<<<<<< HEAD
-=======
         _rb2d = GetComponent<Rigidbody2D>();
         StartAnimation();
->>>>>>> main
     }
 
     private void OnCollisionEnter2D(Collision2D collision2D)
